@@ -6,7 +6,9 @@
 #include <sys/time.h>
 
 #include <l4/util/util.h>
+#if defined(ARCH_amd64) || defined(ARCH_x86)
 #include <l4/util/port_io.h>
+#endif
 
 #include <l4/io/io.h>
 
@@ -78,6 +80,7 @@ AcpiOsStall (uint32_t microseconds)
 }
 
 
+#if defined(ARCH_amd64) || defined(ARCH_x86)
 static l4_umword_t iobitmap[0x10000 / L4_MWORD_BITS];
 
 static l4_umword_t get_iobit(unsigned port)
@@ -170,7 +173,26 @@ AcpiOsWritePort (
     }
   return AE_OK;
 }
+#else
 
+ACPI_STATUS
+AcpiOsReadPort (
+	ACPI_IO_ADDRESS                 address,
+	uint32_t                       *value,
+	uint32_t                        width)
+{
+  return AE_NO_MEMORY;
+}
+
+ACPI_STATUS
+AcpiOsWritePort (
+	ACPI_IO_ADDRESS                 address,
+	uint32_t                        value,
+	uint32_t                        width)
+{
+  return AE_NO_MEMORY;
+}
+#endif
 
 /*
  * Platform and hardware-independent physical memory interfaces
