@@ -1,4 +1,9 @@
+#include <l4/sys/compiler.h>
+
+__BEGIN_DECLS
 #include "acpi.h"
+#include "acpiosxf.h"
+__END_DECLS
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -10,9 +15,36 @@
 #include <l4/util/port_io.h>
 #endif
 
+#include <l4/re/env>
+#include <l4/re/rm>
 #include <l4/io/io.h>
 
-#define DEBUG_OSL_PORT_IO 1
+#include <l4/re/util/cap_alloc>
+
+#include <l4/sigma0/sigma0.h>
+
+#define DEBUG_OSL_PORT_IO 0
+
+static l4_addr_t map_area;
+static L4::Cap<void> sigma0_cap;
+
+static int init_map_area()
+{
+  if (!map_area)
+    {
+      map_area = 0x80000000;
+      int r = L4Re::Env::env()->rm()->reserve_area(&map_area, 0x400000);
+      if (r < 0)
+	return r;
+
+      sigma0_cap = L4Re::Util::cap_alloc.alloc<void>();
+      L4Re::Env::env()->names()->query("sigma0", sigma0_cap);
+
+      printf("ACPICA: reserved map region: %lx\n", map_area);
+    }
+  return 0;
+}
+
 ACPI_STATUS
 AcpiOsInitialize (void)
 {
@@ -123,6 +155,9 @@ AcpiOsReadPort (
   if(0 && DEBUG_OSL_PORT_IO)
     printf("IN: adr=0x%x, width=%i\n", address, width);
 
+  if (address == 0x80)
+    return AE_OK;
+
   if (map_ioport(address, width / 8) < 0)
     return AE_BAD_PARAMETER;
 
@@ -153,6 +188,9 @@ AcpiOsWritePort (
 {
   if(DEBUG_OSL_PORT_IO)
     printf("\tport(0x%x)<=0x%x\n",address,value);
+
+  if (address == 0x80)
+    return AE_OK;
 
   if (map_ioport(address, width / 8) < 0)
     return AE_BAD_PARAMETER;
@@ -223,14 +261,18 @@ AcpiOsMapMemory (
 	ACPI_PHYSICAL_ADDRESS           where,
 	ACPI_SIZE                       length)
 {
+  init_map_area();
   //LOG("where=%8.8x length=%x",where,length);
   int i;
   /* calc page-aligned pointers */
   l4_addr_t page_of_where = l4_trunc_page(where);
   length = l4_round_page(length+where-page_of_where);
-  l4_addr_t virt;
+  l4_addr_t virt = map_area;
+  map_area += l4_round_page(length);
 
-  if (l4io_request_iomem(page_of_where, length, 0, &virt) < 0)
+  i = l4sigma0_map_iomem(sigma0_cap.cap(), page_of_where, virt, length, 0);
+
+  if (i < 0)
     {
       printf("DAMN\n");
       return 0;
@@ -277,11 +319,11 @@ AcpiOsReadPciConfiguration (
     void                    *Value,
     UINT32                  Width)
 {
-  printf("%s: ...\n", __func__);
+  //printf("%s: ...\n", __func__);
 
   AcpiOsWritePort(0xcf8, pci_conf_addr(PciId->Bus, PciId->Device, PciId->Function, Register), 32);
 
-  return AcpiOsReadPort(0xcfc + (Register & 3), Value, Width);
+  return AcpiOsReadPort(0xcfc + (Register & 3), (uint32_t*)Value, Width);
 }
 
 
@@ -307,7 +349,7 @@ AcpiOsWritePciConfiguration (
     ACPI_INTEGER            Value,
     UINT32                  Width)
 {
-  printf("%s: ...\n", __func__);
+  //printf("%s: ...\n", __func__);
 
   return (AE_OK);
 }

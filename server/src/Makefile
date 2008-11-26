@@ -10,4 +10,6 @@ TARGET := acpica
 
 L4_MULTITHREADED=y
 
+EXTRA_LIBS = -lacpica
+
 include $(L4DIR)/mk/prog.mk

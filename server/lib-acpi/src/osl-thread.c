@@ -10,7 +10,7 @@
 ACPI_THREAD_ID
 AcpiOsGetThreadId(void)
 {
-  return (unsigned long)pthread_self();
+  return 10; //(unsigned long)pthread_self();
 }
 
 ACPI_STATUS
@@ -27,7 +27,7 @@ AcpiOsCreateSemaphore (
     }
 
   pthread_mutex_t *m = malloc(sizeof(pthread_mutex_t));
-  pthread_mutex_init(m, NULL);
+//  pthread_mutex_init(m, NULL);
   *out_handle = m;
   return AE_OK;
 }
@@ -36,7 +36,7 @@ ACPI_STATUS
 AcpiOsDeleteSemaphore (
 	ACPI_SEMAPHORE                  handle)
 {
-  pthread_mutex_destroy((pthread_mutex_t*)handle);
+//  pthread_mutex_destroy((pthread_mutex_t*)handle);
   free(handle);
   return AE_OK;
 }
@@ -51,7 +51,7 @@ AcpiOsWaitSemaphore (
     printf("%s:%d:%s: ERROR handle=%p, (%d,%d)\n", __FILE__, __LINE__, __func__,
 	   handle, units, (int)timeout);
   // enter the critical section
-  pthread_mutex_lock((pthread_mutex_t*)handle);
+//  pthread_mutex_lock((pthread_mutex_t*)handle);
   return AE_OK;
 }
 
@@ -65,7 +65,7 @@ AcpiOsSignalSemaphore (
     printf("%s:%d:%s: ERROR: handle=%x, units=%d", __FILE__, __LINE__, __func__,
 	   handle, units);
   // leave the critical section
-  pthread_mutex_unlock((pthread_mutex_t*)handle);
+//  pthread_mutex_unlock((pthread_mutex_t*)handle);
   return AE_OK;
 }
 
@@ -76,7 +76,7 @@ ACPI_STATUS
 AcpiOsCreateLock (ACPI_SPINLOCK *out_handle)
 {
   pthread_mutex_t *m = malloc(sizeof(pthread_mutex_t));
-  pthread_mutex_init(m, NULL);
+//  pthread_mutex_init(m, NULL);
   *out_handle = (ACPI_SPINLOCK)m;
   return AE_OK;
 }
@@ -84,7 +84,7 @@ AcpiOsCreateLock (ACPI_SPINLOCK *out_handle)
 void
 AcpiOsDeleteLock (ACPI_SPINLOCK handle)
 {
-  pthread_mutex_destroy((pthread_mutex_t*)handle);
+//  pthread_mutex_destroy((pthread_mutex_t*)handle);
   free(handle);
   return;
 }
@@ -92,7 +92,7 @@ AcpiOsDeleteLock (ACPI_SPINLOCK handle)
 ACPI_CPU_FLAGS
 AcpiOsAcquireLock (ACPI_SPINLOCK handle)
 {
-  pthread_mutex_lock((pthread_mutex_t*)handle);
+//  pthread_mutex_lock((pthread_mutex_t*)handle);
   return ACPI_NOT_ISR;
 }
 
@@ -102,7 +102,7 @@ AcpiOsReleaseLock (
 	ACPI_CPU_FLAGS                  flags)
 {
   // leave the critical section
-  pthread_mutex_unlock((pthread_mutex_t *)handle);
+//  pthread_mutex_unlock((pthread_mutex_t *)handle);
   return;
 }
 

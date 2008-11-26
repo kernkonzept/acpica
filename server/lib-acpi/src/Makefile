@@ -132,7 +132,8 @@ ACPICA_SRC_C		= \
 	main.c
 
 SRC_C := $(addprefix acpica/,$(ACPICA_SRC_C))
-SRC_C += osl-stdio.c osl-thread.c osl-basic.c debug.c
+SRC_C += osl-stdio.c osl-thread.c debug.c
+SRC_CC+= osl-basic.cc
 
 # list additional library paths and libraries here
 # LIBS		= -lio -ldm_phys -lomega0
