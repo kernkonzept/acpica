@@ -237,7 +237,7 @@ add_pci_irq_table(ACPI_HANDLE obj, int bus)
 }
 
 static ACPI_STATUS
-get_pcidev(ACPI_HANDLE h, UINT32 nest, void *ctxt, void **ret)
+get_pcidev(ACPI_HANDLE h, UINT32 /*nest*/, void *ctxt, void **ret)
 {
   Pci_dev *dev = (Pci_dev*)ctxt;
 
@@ -385,7 +385,7 @@ add_pci_irq_tables(Pci_bridge *bus)
 
 
 static ACPI_STATUS
-print_device_cb(ACPI_HANDLE obj, UINT32 nest, void *ctxt, void **ret)
+print_device_cb(ACPI_HANDLE obj, UINT32 /*nest*/, void * /*ctxt*/, void ** /*ret*/)
 {
   ACPI_STATUS status;
 

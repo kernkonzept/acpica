@@ -62,7 +62,7 @@ AcpiOsSignalSemaphore (
 	uint32_t                        units)
 {
   if(units!=1)
-    printf("%s:%d:%s: ERROR: handle=%x, units=%d", __FILE__, __LINE__, __func__,
+    printf("%s:%d:%s: ERROR: handle=%p, units=%d", __FILE__, __LINE__, __func__,
 	   handle, units);
   // leave the critical section
 //  pthread_mutex_unlock((pthread_mutex_t*)handle);

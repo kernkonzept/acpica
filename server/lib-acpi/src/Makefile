@@ -158,3 +158,4 @@ clean::
 	$(VERBOSE)$(RM) acpi-dsdt.aml
 	$(VERBOSE)$(RM) isaids.h
 
+CFLAGS := $(filter-out -Wextra,$(CFLAGS))

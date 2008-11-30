@@ -72,9 +72,9 @@ AcpiOsFree (void * memory)
 
 ACPI_STATUS
 AcpiOsInstallInterruptHandler (
-	uint32_t                        interrupt_number,
-	ACPI_OSD_HANDLER                service_routine,
-	void                            *context)
+	uint32_t                        /* interrupt_number */,
+	ACPI_OSD_HANDLER                /* service_routine */,
+	void                            * /*context*/)
 {
   printf("%s:%d:%s: UNINPLEMENTED\n", __FILE__, __LINE__, __func__);
   return !AE_OK;
@@ -82,8 +82,8 @@ AcpiOsInstallInterruptHandler (
 
 ACPI_STATUS
 AcpiOsRemoveInterruptHandler (
-	uint32_t                        interrupt_number,
-	ACPI_OSD_HANDLER                service_routine)
+	uint32_t                        /* interrupt_number */,
+	ACPI_OSD_HANDLER                /* service_routine */)
 {
   printf("%s:%d:%s: UNINPLEMENTED\n", __FILE__, __LINE__, __func__);
   return !AE_OK;
@@ -91,9 +91,9 @@ AcpiOsRemoveInterruptHandler (
 
 ACPI_STATUS
 AcpiOsExecute (
-	ACPI_EXECUTE_TYPE               type,
-	ACPI_OSD_EXEC_CALLBACK          function,
-	void                            *context)
+	ACPI_EXECUTE_TYPE                /*type */,
+	ACPI_OSD_EXEC_CALLBACK           /*function */,
+	void                            * /*context */)
 {
   printf("%s:%d:%s: UNINPLEMENTED\n", __FILE__, __LINE__, __func__);
   return !AE_OK;
@@ -215,18 +215,18 @@ AcpiOsWritePort (
 
 ACPI_STATUS
 AcpiOsReadPort (
-	ACPI_IO_ADDRESS                 address,
-	uint32_t                       *value,
-	uint32_t                        width)
+	ACPI_IO_ADDRESS                 /*address*/,
+	uint32_t                       * /*value*/,
+	uint32_t                        /*width*/)
 {
   return AE_NO_MEMORY;
 }
 
 ACPI_STATUS
 AcpiOsWritePort (
-	ACPI_IO_ADDRESS                 address,
-	uint32_t                        value,
-	uint32_t                        width)
+	ACPI_IO_ADDRESS                 /*address*/,
+	uint32_t                        /*value*/,
+	uint32_t                        /*width*/)
 {
   return AE_NO_MEMORY;
 }
@@ -237,9 +237,9 @@ AcpiOsWritePort (
  */
 ACPI_STATUS
 AcpiOsReadMemory (
-	ACPI_PHYSICAL_ADDRESS           address,
-	uint32_t                             *value,
-	uint32_t                             width)
+	ACPI_PHYSICAL_ADDRESS           /*address*/,
+	uint32_t                             * /*value*/,
+	uint32_t                             /*width*/)
 {
   printf("%s:%d:%s: UNINPLEMENTED\n", __FILE__, __LINE__, __func__);
   return !AE_OK;
@@ -247,9 +247,9 @@ AcpiOsReadMemory (
 
 ACPI_STATUS
 AcpiOsWriteMemory (
-	ACPI_PHYSICAL_ADDRESS           address,
-	uint32_t                             value,
-	uint32_t                             width)
+	ACPI_PHYSICAL_ADDRESS            /*address */,
+	uint32_t                            /*  value */,
+	uint32_t                             /* width */)
 {
   printf("%s:%d:%s: UNINPLEMENTED\n", __FILE__, __LINE__, __func__);
   return !AE_OK;
@@ -278,7 +278,7 @@ AcpiOsMapMemory (
       return 0;
     }
 
-  printf("%s(%lx, %lx) = %lx\n", __func__, where, length, virt + (where - page_of_where));
+  printf("%s(%x, %x) = %lx\n", __func__, where, length, virt + (where - page_of_where));
 
   return (void*)(virt + (where - page_of_where));
 }
@@ -344,10 +344,10 @@ AcpiOsReadPciConfiguration (
 
 ACPI_STATUS
 AcpiOsWritePciConfiguration (
-    ACPI_PCI_ID             *PciId,
-    UINT32                  Register,
-    ACPI_INTEGER            Value,
-    UINT32                  Width)
+    ACPI_PCI_ID             * /*PciId*/,
+    UINT32                   /*Register*/,
+    ACPI_INTEGER             /*Value*/,
+    UINT32                   /*Width*/)
 {
   //printf("%s: ...\n", __func__);
 
@@ -436,7 +436,7 @@ AcpiOsGetRootPointer (void)
   ACPI_SIZE table_address = 0;
   printf("Find root Pointer\n");
   AcpiFindRootPointer(&table_address);
-  printf("Find root Pointer: %lx\n", table_address);
+  printf("Find root Pointer: %x\n", table_address);
   return (ACPI_PHYSICAL_ADDRESS)table_address;
 }
 
@@ -455,7 +455,7 @@ AcpiOsGetRootPointer (void)
 
 ACPI_STATUS
 AcpiOsValidateInterface (
-    char                    *Interface)
+    char                    * /*Interface*/)
 {
 
     return (AE_SUPPORT);
@@ -465,9 +465,9 @@ AcpiOsValidateInterface (
 /* TEMPORARY STUB FUNCTION */
 void
 AcpiOsDerivePciId(
-    ACPI_HANDLE             rhandle,
-    ACPI_HANDLE             chandle,
-    ACPI_PCI_ID             **PciId)
+    ACPI_HANDLE             /* rhandle */,
+    ACPI_HANDLE             /* chandle */,
+    ACPI_PCI_ID             ** /* PciId */)
 {
 
 }
@@ -490,9 +490,9 @@ AcpiOsDerivePciId(
 
 ACPI_STATUS
 AcpiOsValidateAddress (
-    UINT8                   SpaceId,
-    ACPI_PHYSICAL_ADDRESS   Address,
-    ACPI_SIZE               Length)
+    UINT8                   /* SpaceId */,
+    ACPI_PHYSICAL_ADDRESS   /* Address */,
+    ACPI_SIZE               /* Length */)
 {
 
     return (AE_OK);
