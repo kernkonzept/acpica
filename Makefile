@@ -1,6 +1,7 @@
 PKGDIR	= .
 L4DIR	?= $(PKGDIR)/../..
 
-#TARGET = include lib server
+TARGET = lib-acpi
 
 include $(L4DIR)/mk/subdir.mk
+

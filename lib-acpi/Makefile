@@ -1,9 +1,8 @@
 PKGDIR		?= ..
 L4DIR		?= $(PKGDIR)/../..
 
-TARGET := include src
+TARGET := include include-acpica src
 
 include $(L4DIR)/mk/subdir.mk
 
-src: include
-
+src: include include-acpica
