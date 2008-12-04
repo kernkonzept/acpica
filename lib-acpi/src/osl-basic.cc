@@ -58,7 +58,7 @@ AcpiOsInstallInterruptHandler (
 	void                            * /*context*/)
 {
   printf("%s:%d:%s: UNINPLEMENTED\n", __FILE__, __LINE__, __func__);
-  return !AE_OK;
+  return AE_OK;
 }
 
 ACPI_STATUS
@@ -67,7 +67,7 @@ AcpiOsRemoveInterruptHandler (
 	ACPI_OSD_HANDLER                /* service_routine */)
 {
   printf("%s:%d:%s: UNINPLEMENTED\n", __FILE__, __LINE__, __func__);
-  return !AE_OK;
+  return AE_OK;
 }
 
 ACPI_STATUS
