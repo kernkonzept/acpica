@@ -2,18 +2,9 @@ PKGDIR		?= ../..
 L4DIR		?= $(PKGDIR)/../..
 
 TARGET		= libacpica.a
+CONTRIB_INCDIR  = acpica
 
 IASL ?= iasl
-
-#PRIVATE_INCDIR =	$(PKGDIR)/server/lib-acpi/src/include \
-					$(PKGDIR)/server/lib-acpi/include \
-					$(PKGDIR)/server/lib-pci/include \
-
-PRIVATE_INCDIR = $(SRC_DIR)/acpica/include \
-                $(addprefix $(OBJ_BASE)/include/$(ARCH)/,$(L4API))/l4/acpica \
-                $(addprefix $(OBJ_BASE)/include/,$(L4API))/l4/acpica \
-                $(OBJ_BASE)/include/$(ARCH)/l4/acpica \
-                $(OBJ_BASE)/include/l4/acpica \
 
 
 # list your .c files here

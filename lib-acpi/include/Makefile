@@ -1,7 +1,7 @@
 PKGDIR ?= ../..
 L4DIR  ?= $(PKGDIR)/../..
 
-PKGNAME := acpica
+CONTRIB_HEADERS = y
 
 include $(L4DIR)/mk/include.mk
 
