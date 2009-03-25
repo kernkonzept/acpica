@@ -1,2 +1,2 @@
 provides: acpica
-requires: l4re libc_r
+requires: l4re libc_r libio
