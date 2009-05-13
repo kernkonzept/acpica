@@ -17,7 +17,6 @@ __END_DECLS
 
 #include <l4/re/env>
 #include <l4/re/rm>
-#include <l4/io/io.h>
 
 #include <l4/re/util/cap_alloc>
 
