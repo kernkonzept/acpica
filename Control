@@ -1,2 +1,3 @@
 provides: acpica
 requires: l4re libc_r libio
+maintainer: warg@os.inf.tu-dresden.de
