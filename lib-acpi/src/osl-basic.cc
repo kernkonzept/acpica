@@ -20,8 +20,6 @@ __END_DECLS
 
 #include <l4/re/util/cap_alloc>
 
-#include <l4/sigma0/sigma0.h>
-
 #define DEBUG_OSL_PORT_IO 0
 
 
