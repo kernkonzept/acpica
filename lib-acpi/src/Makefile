@@ -1,7 +1,7 @@
 PKGDIR		?= ../..
 L4DIR		?= $(PKGDIR)/../..
 
-TARGET		= libacpica.a
+TARGET		= libacpica.a libacpica.so
 CONTRIB_INCDIR  = acpica
 
 IASL ?= iasl
@@ -98,7 +98,6 @@ ACPICA_SRC_C		= \
 	tables/tbfind.c \
 	tables/tbinstal.c \
 	tables/tbutils.c \
-	tables/tbxface.c \
 	tables/tbxfroot.c \
 	tables/tbxface.c \
 	utilities/utalloc.c \
@@ -117,7 +116,6 @@ ACPICA_SRC_C		= \
 	utilities/utstate.c \
 	utilities/utxface.c \
 	utilities/utdebug.c \
-	utilities/utmisc.c \
 	disassembler/dmobject.c
 
 
