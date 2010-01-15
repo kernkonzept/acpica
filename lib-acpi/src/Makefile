@@ -23,6 +23,8 @@ ACPICA_SRC_C		= \
 	hardware/hwgpe.c \
 	hardware/hwregs.c \
 	hardware/hwsleep.c \
+	hardware/hwvalid.c \
+	hardware/hwxface.c \
 	dispatcher/dsfield.c \
 	dispatcher/dsinit.c \
 	dispatcher/dsmethod.c \
@@ -75,6 +77,8 @@ ACPICA_SRC_C		= \
 	namespace/nsobject.c \
 	namespace/nsparse.c \
 	namespace/nspredef.c \
+	namespace/nsrepair.c \
+	namespace/nsrepair2.c \
 	namespace/nssearch.c \
 	namespace/nsutils.c \
 	namespace/nswalk.c \
@@ -107,7 +111,9 @@ ACPICA_SRC_C		= \
 	utilities/utdelete.c \
 	utilities/uteval.c \
 	utilities/utglobal.c \
+	utilities/utids.c \
 	utilities/utinit.c \
+	utilities/utlock.c \
 	utilities/utmath.c \
 	utilities/utmisc.c \
 	utilities/utmutex.c \
@@ -116,7 +122,16 @@ ACPICA_SRC_C		= \
 	utilities/utstate.c \
 	utilities/utxface.c \
 	utilities/utdebug.c \
-	disassembler/dmobject.c
+	disassembler/dmobject.c \
+	disassembler/dmwalk.c \
+	disassembler/dmutils.c \
+	disassembler/dmopcode.c \
+	disassembler/dmbuffer.c \
+	disassembler/dmnames.c \
+	disassembler/dmresrc.c \
+	disassembler/dmresrcl.c \
+	disassembler/dmresrcs.c \
+
 
 
 #	osl.c \

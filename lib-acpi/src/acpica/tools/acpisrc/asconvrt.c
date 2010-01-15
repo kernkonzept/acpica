@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -116,6 +116,17 @@
 
 #include "acpisrc.h"
 
+/* Local prototypes */
+
+char *
+AsCheckAndSkipLiterals (
+    char                    *Buffer,
+    UINT32                  *TotalLines);
+
+UINT32
+AsCountLines (
+    char                    *Buffer,
+    char                    *Filename);
 
 /* Opening signature of the Intel legal header */
 
@@ -719,8 +730,10 @@ AsBracesOnSameLine (
                  * 1) There is a conditional compile on the line (starts with '#')
                  * 2) Previous line ends with an '=' (Start of initializer block)
                  * 3) Previous line ends with a comma (part of an init list)
+                 * 4) Previous line ends with a backslash (part of a macro)
                  */
                 if ((StartOfThisLine[1] != '#') &&
+                    (*Beginning != '\\') &&
                     (*Beginning != '/') &&
                     (*Beginning != '{') &&
                     (*Beginning != '=') &&
@@ -1360,8 +1373,10 @@ AsInsertPrefix (
                 {
                     /* Already present, add spaces after to align structure members */
 
-// ONLY FOR C FILES
-//                    AsInsertData (SubBuffer + KeywordLength, "        ", 8);
+#if 0
+/* ONLY FOR C FILES */
+                    AsInsertData (SubBuffer + KeywordLength, "        ", 8);
+#endif
                 }
                 goto Next;
             }

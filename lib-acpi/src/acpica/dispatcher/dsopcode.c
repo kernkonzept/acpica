@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -507,28 +507,6 @@ AcpiDsGetRegionArguments (
 
     Status = AcpiDsExecuteArguments (Node, AcpiNsGetParentNode (Node),
                 ExtraDesc->Extra.AmlLength, ExtraDesc->Extra.AmlStart);
-    if (ACPI_FAILURE (Status))
-    {
-        return_ACPI_STATUS (Status);
-    }
-
-    /* Validate the region address/length via the host OS */
-
-    Status = AcpiOsValidateAddress (ObjDesc->Region.SpaceId,
-                ObjDesc->Region.Address, (ACPI_SIZE) ObjDesc->Region.Length);
-    if (ACPI_FAILURE (Status))
-    {
-        /*
-         * Invalid address/length. We will emit an error message and mark
-         * the region as invalid, so that it will cause an additional error if
-         * it is ever used. Then return AE_OK.
-         */
-        ACPI_EXCEPTION ((AE_INFO, Status,
-            "During address validation of OpRegion [%4.4s]", Node->Name.Ascii));
-        ObjDesc->Common.Flags |= AOPOBJ_INVALID;
-        Status = AE_OK;
-    }
-
     return_ACPI_STATUS (Status);
 }
 
@@ -600,7 +578,7 @@ AcpiDsInitBufferField (
 
     /* Host object must be a Buffer */
 
-    if (ACPI_GET_OBJECT_TYPE (BufferDesc) != ACPI_TYPE_BUFFER)
+    if (BufferDesc->Common.Type != ACPI_TYPE_BUFFER)
     {
         ACPI_ERROR ((AE_INFO,
             "Target of Create Field is not a Buffer object - %s",
@@ -1528,7 +1506,7 @@ AcpiDsExecEndControlOp (
              * Allow references created by the Index operator to return unchanged.
              */
             if ((ACPI_GET_DESCRIPTOR_TYPE (WalkState->Results->Results.ObjDesc[0]) == ACPI_DESC_TYPE_OPERAND) &&
-                (ACPI_GET_OBJECT_TYPE (WalkState->Results->Results.ObjDesc [0]) == ACPI_TYPE_LOCAL_REFERENCE) &&
+                ((WalkState->Results->Results.ObjDesc [0])->Common.Type == ACPI_TYPE_LOCAL_REFERENCE) &&
                 ((WalkState->Results->Results.ObjDesc [0])->Reference.Class != ACPI_REFCLASS_INDEX))
             {
                 Status = AcpiExResolveToValue (&WalkState->Results->Results.ObjDesc [0], WalkState);
@@ -1573,12 +1551,20 @@ AcpiDsExecEndControlOp (
 
     case AML_BREAK_POINT_OP:
 
-        /* Call up to the OS service layer to handle this */
+        /*
+         * Set the single-step flag. This will cause the debugger (if present)
+         * to break to the console within the AML debugger at the start of the
+         * next AML instruction.
+         */
+        ACPI_DEBUGGER_EXEC (
+            AcpiGbl_CmSingleStep = TRUE);
+        ACPI_DEBUGGER_EXEC (
+            AcpiOsPrintf ("**break** Executed AML BreakPoint opcode\n"));
 
-        Status = AcpiOsSignal (ACPI_SIGNAL_BREAKPOINT, "Executed AML Breakpoint opcode");
+        /* Call to the OSL in case OS wants a piece of the action */
 
-        /* If and when it returns, all done. */
-
+        Status = AcpiOsSignal (ACPI_SIGNAL_BREAKPOINT,
+                    "Executed AML Breakpoint opcode");
         break;
 
 

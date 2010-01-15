@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -172,7 +172,7 @@ AcpiGetType (
 
     /* Convert and validate the handle */
 
-    Node = AcpiNsMapHandleToNode (Handle);
+    Node = AcpiNsValidateHandle (Handle);
     if (!Node)
     {
         (void) AcpiUtReleaseMutex (ACPI_MTX_NAMESPACE);
@@ -209,6 +209,7 @@ AcpiGetParent (
     ACPI_HANDLE             *RetHandle)
 {
     ACPI_NAMESPACE_NODE     *Node;
+    ACPI_NAMESPACE_NODE     *ParentNode;
     ACPI_STATUS             Status;
 
 
@@ -232,7 +233,7 @@ AcpiGetParent (
 
     /* Convert and validate the handle */
 
-    Node = AcpiNsMapHandleToNode (Handle);
+    Node = AcpiNsValidateHandle (Handle);
     if (!Node)
     {
         Status = AE_BAD_PARAMETER;
@@ -241,12 +242,12 @@ AcpiGetParent (
 
     /* Get the parent entry */
 
-    *RetHandle =
-        AcpiNsConvertEntryToHandle (AcpiNsGetParentNode (Node));
+    ParentNode = AcpiNsGetParentNode (Node);
+    *RetHandle = ACPI_CAST_PTR (ACPI_HANDLE, ParentNode);
 
     /* Return exception if parent is null */
 
-    if (!AcpiNsGetParentNode (Node))
+    if (!ParentNode)
     {
         Status = AE_NULL_ENTRY;
     }
@@ -311,7 +312,7 @@ AcpiGetNextObject (
     {
         /* Start search at the beginning of the specified scope */
 
-        ParentNode = AcpiNsMapHandleToNode (Parent);
+        ParentNode = AcpiNsValidateHandle (Parent);
         if (!ParentNode)
         {
             Status = AE_BAD_PARAMETER;
@@ -323,7 +324,7 @@ AcpiGetNextObject (
         /* Non-null handle, ignore the parent */
         /* Convert and validate the handle */
 
-        ChildNode = AcpiNsMapHandleToNode (Child);
+        ChildNode = AcpiNsValidateHandle (Child);
         if (!ChildNode)
         {
             Status = AE_BAD_PARAMETER;
@@ -333,7 +334,7 @@ AcpiGetNextObject (
 
     /* Internal function does the real work */
 
-    Node = AcpiNsGetNextNode (Type, ParentNode, ChildNode);
+    Node = AcpiNsGetNextNodeTyped (Type, ParentNode, ChildNode);
     if (!Node)
     {
         Status = AE_NOT_FOUND;
@@ -342,7 +343,7 @@ AcpiGetNextObject (
 
     if (RetHandle)
     {
-        *RetHandle = AcpiNsConvertEntryToHandle (Node);
+        *RetHandle = ACPI_CAST_PTR (ACPI_HANDLE, Node);
     }
 
 

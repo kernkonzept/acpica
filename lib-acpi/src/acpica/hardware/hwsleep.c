@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -158,6 +158,7 @@ AcpiSetFirmwareWakingVector (
 ACPI_EXPORT_SYMBOL (AcpiSetFirmwareWakingVector)
 
 
+#if ACPI_MACHINE_WIDTH == 64
 /*******************************************************************************
  *
  * FUNCTION:    AcpiSetFirmwareWakingVector64
@@ -168,7 +169,8 @@ ACPI_EXPORT_SYMBOL (AcpiSetFirmwareWakingVector)
  * RETURN:      Status
  *
  * DESCRIPTION: Sets the 64-bit X_FirmwareWakingVector field of the FACS, if
- *              it exists in the table.
+ *              it exists in the table. This function is intended for use with
+ *              64-bit host operating systems.
  *
  ******************************************************************************/
 
@@ -194,7 +196,7 @@ AcpiSetFirmwareWakingVector64 (
 }
 
 ACPI_EXPORT_SYMBOL (AcpiSetFirmwareWakingVector64)
-
+#endif
 
 /*******************************************************************************
  *
@@ -223,9 +225,8 @@ AcpiEnterSleepStatePrep (
     ACPI_FUNCTION_TRACE (AcpiEnterSleepStatePrep);
 
 
-    /*
-     * _PSW methods could be run here to enable wake-on keyboard, LAN, etc.
-     */
+    /* _PSW methods could be run here to enable wake-on keyboard, LAN, etc. */
+
     Status = AcpiGetSleepTypeData (SleepState,
                     &AcpiGbl_SleepTypeA, &AcpiGbl_SleepTypeB);
     if (ACPI_FAILURE (Status))
@@ -302,8 +303,8 @@ ACPI_STATUS
 AcpiEnterSleepState (
     UINT8                   SleepState)
 {
-    UINT32                  PM1AControl;
-    UINT32                  PM1BControl;
+    UINT32                  Pm1aControl;
+    UINT32                  Pm1bControl;
     ACPI_BIT_REGISTER_INFO  *SleepTypeRegInfo;
     ACPI_BIT_REGISTER_INFO  *SleepEnableRegInfo;
     UINT32                  InValue;
@@ -323,12 +324,12 @@ AcpiEnterSleepState (
         return_ACPI_STATUS (AE_AML_OPERAND_VALUE);
     }
 
-    SleepTypeRegInfo   = AcpiHwGetBitRegisterInfo (ACPI_BITREG_SLEEP_TYPE_A);
+    SleepTypeRegInfo   = AcpiHwGetBitRegisterInfo (ACPI_BITREG_SLEEP_TYPE);
     SleepEnableRegInfo = AcpiHwGetBitRegisterInfo (ACPI_BITREG_SLEEP_ENABLE);
 
     /* Clear wake status */
 
-    Status = AcpiSetRegister (ACPI_BITREG_WAKE_STATUS, 1);
+    Status = AcpiWriteBitRegister (ACPI_BITREG_WAKE_STATUS, ACPI_CLEAR_STATUS);
     if (ACPI_FAILURE (Status))
     {
         return_ACPI_STATUS (Status);
@@ -344,10 +345,13 @@ AcpiEnterSleepState (
 
     if (SleepState != ACPI_STATE_S5)
     {
-        /* Disable BM arbitration */
-
-        Status = AcpiSetRegister (ACPI_BITREG_ARB_DISABLE, 1);
-        if (ACPI_FAILURE (Status))
+        /*
+         * Disable BM arbitration. This feature is contained within an
+         * optional register (PM2 Control), so ignore a BAD_ADDRESS
+         * exception.
+         */
+        Status = AcpiWriteBitRegister (ACPI_BITREG_ARB_DISABLE, 1);
+        if (ACPI_FAILURE (Status) && (Status != AE_BAD_ADDRESS))
         {
             return_ACPI_STATUS (Status);
         }
@@ -386,7 +390,7 @@ AcpiEnterSleepState (
     /* Get current value of PM1A control */
 
     Status = AcpiHwRegisterRead (ACPI_REGISTER_PM1_CONTROL,
-                &PM1AControl);
+                &Pm1aControl);
     if (ACPI_FAILURE (Status))
     {
         return_ACPI_STATUS (Status);
@@ -394,56 +398,42 @@ AcpiEnterSleepState (
     ACPI_DEBUG_PRINT ((ACPI_DB_INIT,
         "Entering sleep state [S%d]\n", SleepState));
 
-    /* Clear SLP_EN and SLP_TYP fields */
+    /* Clear the SLP_EN and SLP_TYP fields */
 
-    PM1AControl &= ~(SleepTypeRegInfo->AccessBitMask |
+    Pm1aControl &= ~(SleepTypeRegInfo->AccessBitMask |
                      SleepEnableRegInfo->AccessBitMask);
-    PM1BControl = PM1AControl;
+    Pm1bControl = Pm1aControl;
 
-    /* Insert SLP_TYP bits */
+    /* Insert the SLP_TYP bits */
 
-    PM1AControl |= (AcpiGbl_SleepTypeA << SleepTypeRegInfo->BitPosition);
-    PM1BControl |= (AcpiGbl_SleepTypeB << SleepTypeRegInfo->BitPosition);
+    Pm1aControl |= (AcpiGbl_SleepTypeA << SleepTypeRegInfo->BitPosition);
+    Pm1bControl |= (AcpiGbl_SleepTypeB << SleepTypeRegInfo->BitPosition);
 
     /*
      * We split the writes of SLP_TYP and SLP_EN to workaround
      * poorly implemented hardware.
      */
 
-    /* Write #1: fill in SLP_TYP data */
+    /* Write #1: write the SLP_TYP data to the PM1 Control registers */
 
-    Status = AcpiHwRegisterWrite (ACPI_REGISTER_PM1A_CONTROL,
-                PM1AControl);
+    Status = AcpiHwWritePm1Control (Pm1aControl, Pm1bControl);
     if (ACPI_FAILURE (Status))
     {
         return_ACPI_STATUS (Status);
     }
 
-    Status = AcpiHwRegisterWrite (ACPI_REGISTER_PM1B_CONTROL,
-                PM1BControl);
-    if (ACPI_FAILURE (Status))
-    {
-        return_ACPI_STATUS (Status);
-    }
+    /* Insert the sleep enable (SLP_EN) bit */
 
-    /* Insert SLP_ENABLE bit */
+    Pm1aControl |= SleepEnableRegInfo->AccessBitMask;
+    Pm1bControl |= SleepEnableRegInfo->AccessBitMask;
 
-    PM1AControl |= SleepEnableRegInfo->AccessBitMask;
-    PM1BControl |= SleepEnableRegInfo->AccessBitMask;
-
-    /* Write #2: SLP_TYP + SLP_EN */
+    /* Flush caches, as per ACPI specification */
 
     ACPI_FLUSH_CPU_CACHE ();
 
-    Status = AcpiHwRegisterWrite (ACPI_REGISTER_PM1A_CONTROL,
-                PM1AControl);
-    if (ACPI_FAILURE (Status))
-    {
-        return_ACPI_STATUS (Status);
-    }
+    /* Write #2: Write both SLP_TYP + SLP_EN */
 
-    Status = AcpiHwRegisterWrite (ACPI_REGISTER_PM1B_CONTROL,
-                PM1BControl);
+    Status = AcpiHwWritePm1Control (Pm1aControl, Pm1bControl);
     if (ACPI_FAILURE (Status))
     {
         return_ACPI_STATUS (Status);
@@ -458,8 +448,8 @@ AcpiEnterSleepState (
          * Wait ten seconds, then try again. This is to get S4/S5 to work on
          * all machines.
          *
-         * We wait so long to allow chipsets that poll this reg very slowly to
-         * still read the right value. Ideally, this block would go
+         * We wait so long to allow chipsets that poll this reg very slowly
+         * to still read the right value. Ideally, this block would go
          * away entirely.
          */
         AcpiOsStall (10000000);
@@ -476,7 +466,7 @@ AcpiEnterSleepState (
 
     do
     {
-        Status = AcpiGetRegister (ACPI_BITREG_WAKE_STATUS, &InValue);
+        Status = AcpiReadBitRegister (ACPI_BITREG_WAKE_STATUS, &InValue);
         if (ACPI_FAILURE (Status))
         {
             return_ACPI_STATUS (Status);
@@ -516,7 +506,9 @@ AcpiEnterSleepStateS4bios (
     ACPI_FUNCTION_TRACE (AcpiEnterSleepStateS4bios);
 
 
-    Status = AcpiSetRegister (ACPI_BITREG_WAKE_STATUS, 1);
+    /* Clear the wake status bit (PM1) */
+
+    Status = AcpiWriteBitRegister (ACPI_BITREG_WAKE_STATUS, ACPI_CLEAR_STATUS);
     if (ACPI_FAILURE (Status))
     {
         return_ACPI_STATUS (Status);
@@ -547,12 +539,12 @@ AcpiEnterSleepStateS4bios (
 
     ACPI_FLUSH_CPU_CACHE ();
 
-    Status = AcpiOsWritePort (AcpiGbl_FADT.SmiCommand,
+    Status = AcpiHwWritePort (AcpiGbl_FADT.SmiCommand,
                 (UINT32) AcpiGbl_FADT.S4BiosRequest, 8);
 
     do {
         AcpiOsStall(1000);
-        Status = AcpiGetRegister (ACPI_BITREG_WAKE_STATUS, &InValue);
+        Status = AcpiReadBitRegister (ACPI_BITREG_WAKE_STATUS, &InValue);
         if (ACPI_FAILURE (Status))
         {
             return_ACPI_STATUS (Status);
@@ -587,8 +579,8 @@ AcpiLeaveSleepState (
     ACPI_STATUS             Status;
     ACPI_BIT_REGISTER_INFO  *SleepTypeRegInfo;
     ACPI_BIT_REGISTER_INFO  *SleepEnableRegInfo;
-    UINT32                  PM1AControl;
-    UINT32                  PM1BControl;
+    UINT32                  Pm1aControl;
+    UINT32                  Pm1bControl;
 
 
     ACPI_FUNCTION_TRACE (AcpiLeaveSleepState);
@@ -603,32 +595,33 @@ AcpiLeaveSleepState (
                     &AcpiGbl_SleepTypeA, &AcpiGbl_SleepTypeB);
     if (ACPI_SUCCESS (Status))
     {
-        SleepTypeRegInfo   = AcpiHwGetBitRegisterInfo (ACPI_BITREG_SLEEP_TYPE_A);
-        SleepEnableRegInfo = AcpiHwGetBitRegisterInfo (ACPI_BITREG_SLEEP_ENABLE);
+        SleepTypeRegInfo =
+            AcpiHwGetBitRegisterInfo (ACPI_BITREG_SLEEP_TYPE);
+        SleepEnableRegInfo =
+            AcpiHwGetBitRegisterInfo (ACPI_BITREG_SLEEP_ENABLE);
 
         /* Get current value of PM1A control */
 
         Status = AcpiHwRegisterRead (ACPI_REGISTER_PM1_CONTROL,
-                    &PM1AControl);
+                    &Pm1aControl);
         if (ACPI_SUCCESS (Status))
         {
-            /* Clear SLP_EN and SLP_TYP fields */
+            /* Clear the SLP_EN and SLP_TYP fields */
 
-            PM1AControl &= ~(SleepTypeRegInfo->AccessBitMask |
-                             SleepEnableRegInfo->AccessBitMask);
-            PM1BControl = PM1AControl;
+            Pm1aControl &= ~(SleepTypeRegInfo->AccessBitMask |
+                SleepEnableRegInfo->AccessBitMask);
+            Pm1bControl = Pm1aControl;
 
-            /* Insert SLP_TYP bits */
+            /* Insert the SLP_TYP bits */
 
-            PM1AControl |= (AcpiGbl_SleepTypeA << SleepTypeRegInfo->BitPosition);
-            PM1BControl |= (AcpiGbl_SleepTypeB << SleepTypeRegInfo->BitPosition);
+            Pm1aControl |= (AcpiGbl_SleepTypeA <<
+                SleepTypeRegInfo->BitPosition);
+            Pm1bControl |= (AcpiGbl_SleepTypeB <<
+                SleepTypeRegInfo->BitPosition);
 
-            /* Just ignore any errors */
+            /* Write the control registers and ignore any errors */
 
-            (void) AcpiHwRegisterWrite (ACPI_REGISTER_PM1A_CONTROL,
-                            PM1AControl);
-            (void) AcpiHwRegisterWrite (ACPI_REGISTER_PM1B_CONTROL,
-                            PM1BControl);
+            (void) AcpiHwWritePm1Control (Pm1aControl, Pm1bControl);
         }
     }
 
@@ -685,16 +678,21 @@ AcpiLeaveSleepState (
 
     /* Enable power button */
 
-    (void) AcpiSetRegister(
-            AcpiGbl_FixedEventInfo[ACPI_EVENT_POWER_BUTTON].EnableRegisterId, 1);
+    (void) AcpiWriteBitRegister(
+            AcpiGbl_FixedEventInfo[ACPI_EVENT_POWER_BUTTON].EnableRegisterId,
+            ACPI_ENABLE_EVENT);
 
-    (void) AcpiSetRegister(
-            AcpiGbl_FixedEventInfo[ACPI_EVENT_POWER_BUTTON].StatusRegisterId, 1);
+    (void) AcpiWriteBitRegister(
+            AcpiGbl_FixedEventInfo[ACPI_EVENT_POWER_BUTTON].StatusRegisterId,
+            ACPI_CLEAR_STATUS);
 
-    /* Enable BM arbitration */
-
-    Status = AcpiSetRegister (ACPI_BITREG_ARB_DISABLE, 0);
-    if (ACPI_FAILURE (Status))
+    /*
+     * Enable BM arbitration. This feature is contained within an
+     * optional register (PM2 Control), so ignore a BAD_ADDRESS
+     * exception.
+     */
+    Status = AcpiWriteBitRegister (ACPI_BITREG_ARB_DISABLE, 0);
+    if (ACPI_FAILURE (Status) && (Status != AE_BAD_ADDRESS))
     {
         return_ACPI_STATUS (Status);
     }

@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -355,10 +355,6 @@
 #define ACPI_GET_DESCRIPTOR_TYPE(d)     (((ACPI_DESCRIPTOR *)(void *)(d))->Common.DescriptorType)
 #define ACPI_SET_DESCRIPTOR_TYPE(d, t)  (((ACPI_DESCRIPTOR *)(void *)(d))->Common.DescriptorType = t)
 
-/* Macro to test the object type */
-
-#define ACPI_GET_OBJECT_TYPE(d)         (((ACPI_OPERAND_OBJECT *)(void *)(d))->Common.Type)
-
 /*
  * Macros for the master AML opcode table
  */
@@ -406,6 +402,8 @@
  */
 #define ACPI_ERROR_NAMESPACE(s, e)      AcpiNsReportError (AE_INFO, s, e);
 #define ACPI_ERROR_METHOD(s, n, p, e)   AcpiNsReportMethodError (AE_INFO, s, n, p, e);
+#define ACPI_WARN_PREDEFINED(plist)     AcpiUtPredefinedWarning plist
+#define ACPI_INFO_PREDEFINED(plist)     AcpiUtPredefinedInfo plist
 
 #else
 
@@ -413,6 +411,8 @@
 
 #define ACPI_ERROR_NAMESPACE(s, e)
 #define ACPI_ERROR_METHOD(s, n, p, e)
+#define ACPI_WARN_PREDEFINED(plist)
+#define ACPI_INFO_PREDEFINED(plist)
 
 #endif /* ACPI_NO_ERROR_MESSAGES */
 

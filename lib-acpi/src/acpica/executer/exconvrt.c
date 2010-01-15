@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -167,7 +167,7 @@ AcpiExConvertToInteger (
     ACPI_FUNCTION_TRACE_PTR (ExConvertToInteger, ObjDesc);
 
 
-    switch (ACPI_GET_OBJECT_TYPE (ObjDesc))
+    switch (ObjDesc->Common.Type)
     {
     case ACPI_TYPE_INTEGER:
 
@@ -202,7 +202,7 @@ AcpiExConvertToInteger (
 
     /* String conversion is different than Buffer conversion */
 
-    switch (ACPI_GET_OBJECT_TYPE (ObjDesc))
+    switch (ObjDesc->Common.Type)
     {
     case ACPI_TYPE_STRING:
 
@@ -260,7 +260,7 @@ AcpiExConvertToInteger (
 
     /* Create a new integer */
 
-    ReturnDesc = AcpiUtCreateInternalObject (ACPI_TYPE_INTEGER);
+    ReturnDesc = AcpiUtCreateIntegerObject (Result);
     if (!ReturnDesc)
     {
         return_ACPI_STATUS (AE_NO_MEMORY);
@@ -271,7 +271,6 @@ AcpiExConvertToInteger (
 
     /* Save the Result */
 
-    ReturnDesc->Integer.Value = Result;
     AcpiExTruncateFor32bitTable (ReturnDesc);
     *ResultDesc = ReturnDesc;
     return_ACPI_STATUS (AE_OK);
@@ -304,7 +303,7 @@ AcpiExConvertToBuffer (
     ACPI_FUNCTION_TRACE_PTR (ExConvertToBuffer, ObjDesc);
 
 
-    switch (ACPI_GET_OBJECT_TYPE (ObjDesc))
+    switch (ObjDesc->Common.Type)
     {
     case ACPI_TYPE_BUFFER:
 
@@ -525,7 +524,7 @@ AcpiExConvertToString (
     ACPI_FUNCTION_TRACE_PTR (ExConvertToString, ObjDesc);
 
 
-    switch (ACPI_GET_OBJECT_TYPE (ObjDesc))
+    switch (ObjDesc->Common.Type)
     {
     case ACPI_TYPE_STRING:
 
@@ -738,7 +737,7 @@ AcpiExConvertToTargetType (
         default:
             /* No conversion allowed for these types */
 
-            if (DestinationType != ACPI_GET_OBJECT_TYPE (SourceDesc))
+            if (DestinationType != SourceDesc->Common.Type)
             {
                 ACPI_DEBUG_PRINT ((ACPI_DB_INFO,
                     "Explicit operator, will store (%s) over existing type (%s)\n",

@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -121,7 +121,7 @@ extern const UINT8                      AcpiGbl_ResourceAmlSizes[];
 
 /* Strings used by the disassembler and debugger resource dump routines */
 
-#if defined(ACPI_DISASSEMBLER) || defined (ACPI_DEBUGGER) || defined(L4_ACPICA)
+#if defined(ACPI_DISASSEMBLER) || defined (ACPI_DEBUGGER)
 
 extern const char                       *AcpiGbl_BmDecode[];
 extern const char                       *AcpiGbl_ConfigDecode[];
@@ -355,7 +355,9 @@ extern const UINT8 _acpi_ctype[];
 #define ACPI_IS_PRINT(c)  (_acpi_ctype[(unsigned char)(c)] & (_ACPI_LO | _ACPI_UP | _ACPI_DI | _ACPI_SP | _ACPI_PU))
 #define ACPI_IS_ALPHA(c)  (_acpi_ctype[(unsigned char)(c)] & (_ACPI_LO | _ACPI_UP))
 
-#endif /* ACPI_USE_SYSTEM_CLIBRARY */
+#endif /* !ACPI_USE_SYSTEM_CLIBRARY */
+
+#define ACPI_IS_ASCII(c)  ((c) < 0x80)
 
 
 /*
@@ -548,17 +550,7 @@ ACPI_STATUS
 AcpiUtEvaluateNumericObject (
     char                    *ObjectName,
     ACPI_NAMESPACE_NODE     *DeviceNode,
-    ACPI_INTEGER            *Address);
-
-ACPI_STATUS
-AcpiUtExecute_HID (
-    ACPI_NAMESPACE_NODE     *DeviceNode,
-    ACPI_DEVICE_ID          *Hid);
-
-ACPI_STATUS
-AcpiUtExecute_CID (
-    ACPI_NAMESPACE_NODE     *DeviceNode,
-    ACPI_COMPATIBLE_ID_LIST **ReturnCidList);
+    ACPI_INTEGER            *Value);
 
 ACPI_STATUS
 AcpiUtExecute_STA (
@@ -566,14 +558,58 @@ AcpiUtExecute_STA (
     UINT32                  *StatusFlags);
 
 ACPI_STATUS
-AcpiUtExecute_UID (
+AcpiUtExecutePowerMethods (
     ACPI_NAMESPACE_NODE     *DeviceNode,
-    ACPI_DEVICE_ID          *Uid);
+    const char              **MethodNames,
+    UINT8                   MethodCount,
+    UINT8                   *OutValues);
+
+
+/*
+ * utids - device ID support
+ */
+ACPI_STATUS
+AcpiUtExecute_HID (
+    ACPI_NAMESPACE_NODE     *DeviceNode,
+    ACPI_DEVICE_ID          **ReturnId);
 
 ACPI_STATUS
-AcpiUtExecute_Sxds (
+AcpiUtExecute_UID (
     ACPI_NAMESPACE_NODE     *DeviceNode,
-    UINT8                   *Highest);
+    ACPI_DEVICE_ID          **ReturnId);
+
+ACPI_STATUS
+AcpiUtExecute_CID (
+    ACPI_NAMESPACE_NODE     *DeviceNode,
+    ACPI_DEVICE_ID_LIST     **ReturnCidList);
+
+
+/*
+ * utlock - reader/writer locks
+ */
+ACPI_STATUS
+AcpiUtCreateRwLock (
+    ACPI_RW_LOCK            *Lock);
+
+void
+AcpiUtDeleteRwLock (
+    ACPI_RW_LOCK            *Lock);
+
+ACPI_STATUS
+AcpiUtAcquireReadLock (
+    ACPI_RW_LOCK            *Lock);
+
+ACPI_STATUS
+AcpiUtReleaseReadLock (
+    ACPI_RW_LOCK            *Lock);
+
+ACPI_STATUS
+AcpiUtAcquireWriteLock (
+    ACPI_RW_LOCK            *Lock);
+
+void
+AcpiUtReleaseWriteLock (
+    ACPI_RW_LOCK            *Lock);
 
 
 /*
@@ -606,6 +642,10 @@ AcpiUtValidInternalObject (
 ACPI_OPERAND_OBJECT *
 AcpiUtCreatePackageObject (
     UINT32                  Count);
+
+ACPI_OPERAND_OBJECT *
+AcpiUtCreateIntegerObject (
+    UINT64                  Value);
 
 ACPI_OPERAND_OBJECT *
 AcpiUtCreateBufferObject (
@@ -700,6 +740,10 @@ AcpiUtValidateException (
     ACPI_STATUS             Status);
 
 BOOLEAN
+AcpiUtIsPciRootBridge (
+    char                    *Id);
+
+BOOLEAN
 AcpiUtIsAmlTable (
     ACPI_TABLE_HEADER       *Table);
 
@@ -745,6 +789,24 @@ AcpiUtStrtoul64 (
     char                    *String,
     UINT32                  Base,
     ACPI_INTEGER            *RetInteger);
+
+void ACPI_INTERNAL_VAR_XFACE
+AcpiUtPredefinedWarning (
+    const char              *ModuleName,
+    UINT32                  LineNumber,
+    char                    *Pathname,
+    UINT8                   NodeFlags,
+    const char              *Format,
+    ...);
+
+void ACPI_INTERNAL_VAR_XFACE
+AcpiUtPredefinedInfo (
+    const char              *ModuleName,
+    UINT32                  LineNumber,
+    char                    *Pathname,
+    UINT8                   NodeFlags,
+    const char              *Format,
+    ...);
 
 /* Values for Base above (16=Hex, 10=Decimal) */
 

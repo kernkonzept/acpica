@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -170,7 +170,7 @@ AcpiNsReportError (
     {
         /* There is a non-ascii character in the name */
 
-        ACPI_MOVE_32_TO_32 (&BadName, InternalName);
+        ACPI_MOVE_32_TO_32 (&BadName, ACPI_CAST_PTR (UINT32, InternalName));
         AcpiOsPrintf ("[0x%4.4X] (NON-ASCII)", BadName);
     }
     else
@@ -448,9 +448,8 @@ AcpiNsGetInternalNameLength (
     }
     else
     {
-        /*
-         * Handle Carat prefixes
-         */
+        /* Handle Carat prefixes */
+
         while (*NextExternalChar == '^')
         {
             Info->NumCarats++;
@@ -723,9 +722,8 @@ AcpiNsExternalizeName (
         return_ACPI_STATUS (AE_BAD_PARAMETER);
     }
 
-    /*
-     * Check for a prefix (one '\' | one or more '^').
-     */
+    /* Check for a prefix (one '\' | one or more '^') */
+
     switch (InternalName[0])
     {
     case '\\':
@@ -757,7 +755,7 @@ AcpiNsExternalizeName (
     }
 
     /*
-     * Check for object names.  Note that there could be 0-255 of these
+     * Check for object names. Note that there could be 0-255 of these
      * 4-byte elements.
      */
     if (PrefixLength < InternalNameLength)
@@ -817,9 +815,8 @@ AcpiNsExternalizeName (
         return_ACPI_STATUS (AE_BAD_PATHNAME);
     }
 
-    /*
-     * Build ConvertedName
-     */
+    /* Build the ConvertedName */
+
     *ConvertedName = ACPI_ALLOCATE_ZEROED (RequiredLength);
     if (!(*ConvertedName))
     {
@@ -860,31 +857,34 @@ AcpiNsExternalizeName (
 
 /*******************************************************************************
  *
- * FUNCTION:    AcpiNsMapHandleToNode
+ * FUNCTION:    AcpiNsValidateHandle
  *
- * PARAMETERS:  Handle          - Handle to be converted to an Node
+ * PARAMETERS:  Handle          - Handle to be validated and typecast to a
+ *                                namespace node.
  *
- * RETURN:      A Name table entry pointer
+ * RETURN:      A pointer to a namespace node
  *
- * DESCRIPTION: Convert a namespace handle to a real Node
+ * DESCRIPTION: Convert a namespace handle to a namespace node. Handles special
+ *              cases for the root node.
  *
- * Note: Real integer handles would allow for more verification
+ * NOTE: Real integer handles would allow for more verification
  *       and keep all pointers within this subsystem - however this introduces
- *       more (and perhaps unnecessary) overhead.
+ *       more overhead and has not been necessary to this point. Drivers
+ *       holding handles are typically notified before a node becomes invalid
+ *       due to a table unload.
  *
  ******************************************************************************/
 
 ACPI_NAMESPACE_NODE *
-AcpiNsMapHandleToNode (
+AcpiNsValidateHandle (
     ACPI_HANDLE             Handle)
 {
 
     ACPI_FUNCTION_ENTRY ();
 
 
-    /*
-     * Simple implementation
-     */
+    /* Parameter validation */
+
     if ((!Handle) || (Handle == ACPI_ROOT_OBJECT))
     {
         return (AcpiGbl_RootNode);
@@ -898,48 +898,6 @@ AcpiNsMapHandleToNode (
     }
 
     return (ACPI_CAST_PTR (ACPI_NAMESPACE_NODE, Handle));
-}
-
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiNsConvertEntryToHandle
- *
- * PARAMETERS:  Node          - Node to be converted to a Handle
- *
- * RETURN:      A user handle
- *
- * DESCRIPTION: Convert a real Node to a namespace handle
- *
- ******************************************************************************/
-
-ACPI_HANDLE
-AcpiNsConvertEntryToHandle (
-    ACPI_NAMESPACE_NODE         *Node)
-{
-
-
-    /*
-     * Simple implementation for now;
-     */
-    return ((ACPI_HANDLE) Node);
-
-
-/* Example future implementation ---------------------
-
-    if (!Node)
-    {
-        return (NULL);
-    }
-
-    if (Node == AcpiGbl_RootNode)
-    {
-        return (ACPI_ROOT_OBJECT);
-    }
-
-
-    return ((ACPI_HANDLE) Node);
-------------------------------------------------------*/
 }
 
 
@@ -1049,7 +1007,7 @@ AcpiNsGetNode (
     char                    *InternalPath;
 
 
-    ACPI_FUNCTION_TRACE_PTR (NsGetNode, Pathname);
+    ACPI_FUNCTION_TRACE_PTR (NsGetNode, ACPI_CAST_PTR (char, Pathname));
 
 
     if (!Pathname)
@@ -1089,7 +1047,7 @@ AcpiNsGetNode (
                 NULL, ReturnNode);
     if (ACPI_FAILURE (Status))
     {
-        ACPI_DEBUG_PRINT ((ACPI_DB_INFO, "%s, %s\n",
+        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC, "%s, %s\n",
                 Pathname, AcpiFormatException (Status)));
     }
 

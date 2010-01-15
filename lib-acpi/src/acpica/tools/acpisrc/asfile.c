@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -116,6 +116,28 @@
 
 #include "acpisrc.h"
 
+/* Local prototypes */
+
+void
+AsDoWildcard (
+    ACPI_CONVERSION_TABLE   *ConversionTable,
+    char                    *SourcePath,
+    char                    *TargetPath,
+    int                     MaxPathLength,
+    int                     FileType,
+    char                    *WildcardSpec);
+
+BOOLEAN
+AsDetectLoneLineFeeds (
+    char                    *Filename,
+    char                    *Buffer);
+
+static inline int
+AsMaxInt (int a, int b)
+{
+    return (a > b ? a : b);
+}
+
 
 /******************************************************************************
  *
@@ -192,6 +214,9 @@ AsDoWildcard (
                 AsProcessOneFile (ConversionTable, SourcePath, TargetPath,
                         MaxPathLength, Filename, FileType);
                 break;
+
+            default:
+                break;
             }
         }
 
@@ -220,7 +245,7 @@ AsProcessTree (
     int                     MaxPathLength;
 
 
-    MaxPathLength = max (strlen (SourcePath), strlen (TargetPath));
+    MaxPathLength = AsMaxInt (strlen (SourcePath), strlen (TargetPath));
 
     if (!(ConversionTable->Flags & FLG_NO_FILE_OUTPUT))
     {
@@ -765,6 +790,8 @@ AsGetFile (
      * Add plenty extra buffer to accomodate string replacements
      */
     Size = Gbl_StatBuf.st_size;
+    Gbl_TotalSize += Size;
+
     Buffer = calloc (Size * 2, 1);
     if (!Buffer)
     {

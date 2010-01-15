@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -224,11 +224,11 @@ AcpiDsGetPredicateValue (
         goto Cleanup;
     }
 
-    if (ACPI_GET_OBJECT_TYPE (LocalObjDesc) != ACPI_TYPE_INTEGER)
+    if (LocalObjDesc->Common.Type != ACPI_TYPE_INTEGER)
     {
         ACPI_ERROR ((AE_INFO,
             "Bad predicate (not an integer) ObjDesc=%p State=%p Type=%X",
-            ObjDesc, WalkState, ACPI_GET_OBJECT_TYPE (ObjDesc)));
+            ObjDesc, WalkState, ObjDesc->Common.Type));
 
         Status = AE_AML_OPERAND_TYPE;
         goto Cleanup;

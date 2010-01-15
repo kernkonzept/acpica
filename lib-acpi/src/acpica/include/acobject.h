@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -170,7 +170,7 @@
 #define AOPOBJ_OBJECT_INITIALIZED   0x08
 #define AOPOBJ_SETUP_COMPLETE       0x10
 #define AOPOBJ_SINGLE_DATUM         0x20
-#define AOPOBJ_INVALID              0x40 /* Used if host OS won't allow an OpRegion address */
+#define AOPOBJ_MODULE_LEVEL         0x40
 
 
 /******************************************************************************
@@ -288,7 +288,12 @@ typedef struct acpi_object_method
     UINT8                           SyncLevel;
     union acpi_operand_object       *Mutex;
     UINT8                           *AmlStart;
-    ACPI_INTERNAL_METHOD            Implementation;
+    union
+    {
+        ACPI_INTERNAL_METHOD            Implementation;
+        union acpi_operand_object       *Handler;
+    } Extra;
+
     UINT32                          AmlLength;
     UINT8                           ThreadCount;
     ACPI_OWNER_ID                   OwnerId;

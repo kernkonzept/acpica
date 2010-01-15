@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -117,6 +117,9 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "acpi.h"
+#include "accommon.h"
+#include "acapps.h"
 
 #define ERR(szz,czz) if(AcpiGbl_Opterr){fprintf(stderr,"%s%s%c\n",argv[0],szz,czz);}
 
@@ -192,9 +195,9 @@ AcpiGetopt(
 
     if (*++OptsPtr == ':')
     {
-        if (argv[AcpiGbl_Optind][CurrentCharPtr+1] != '\0')
+        if (argv[AcpiGbl_Optind][(int) (CurrentCharPtr+1)] != '\0')
         {
-            AcpiGbl_Optarg = &argv[AcpiGbl_Optind++][CurrentCharPtr+1];
+            AcpiGbl_Optarg = &argv[AcpiGbl_Optind++][(int) (CurrentCharPtr+1)];
         }
         else if (++AcpiGbl_Optind >= argc)
         {
@@ -215,9 +218,9 @@ AcpiGetopt(
 
     else if (*OptsPtr == '^')
     {
-        if (argv[AcpiGbl_Optind][CurrentCharPtr+1] != '\0')
+        if (argv[AcpiGbl_Optind][(int) (CurrentCharPtr+1)] != '\0')
         {
-            AcpiGbl_Optarg = &argv[AcpiGbl_Optind][CurrentCharPtr+1];
+            AcpiGbl_Optarg = &argv[AcpiGbl_Optind][(int) (CurrentCharPtr+1)];
         }
         else
         {

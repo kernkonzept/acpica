@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -138,34 +138,22 @@
 
 /* Fixups for non-Win32 compilation */
 #ifndef WIN32
-
-static inline int
-max (int a, int b)
-{
-    return (a > b ? a : b);
-}
-
 #ifndef O_BINARY
 #define O_BINARY    0x0
 #endif
 
 #define mkdir(x) mkdir(x, 0770)
-#define stricmp strcasecmp
-
 char * strlwr(char* str);
-
 #endif
 
 
 /* Constants */
-
 
 #define ASRC_MAX_FILE_SIZE                  (1024 * 100)
 
 #define FILE_TYPE_SOURCE                    1
 #define FILE_TYPE_HEADER                    2
 #define FILE_TYPE_DIRECTORY                 3
-
 
 #define CVT_COUNT_TABS                      0x00000001
 #define CVT_COUNT_NON_ANSI_COMMENTS         0x00000002
@@ -182,7 +170,6 @@ char * strlwr(char* str);
 #define CVT_COUNT_SHORTMULTILINE_COMMENTS   0x00001000
 #define CVT_SPACES_TO_TABS4                 0x40000000  /* Tab conversion should be last */
 #define CVT_SPACES_TO_TABS8                 0x80000000  /* Tab conversion should be last */
-
 
 #define FLG_DEFAULT_FLAGS                   0x00000000
 #define FLG_NO_CARRIAGE_RETURNS             0x00000001
@@ -208,6 +195,7 @@ extern UINT32                   Gbl_HeaderSize;
 extern UINT32                   Gbl_HeaderLines;
 extern struct stat              Gbl_StatBuf;
 extern char                     *Gbl_FileBuffer;
+extern UINT32                   Gbl_TotalSize;
 extern UINT32                   Gbl_FileSize;
 extern UINT32                   Gbl_FileType;
 extern BOOLEAN                  Gbl_VerboseMode;
@@ -223,7 +211,6 @@ extern void                     *Gbl_StructDefs;
 #define PARAM_LIST(pl)          pl
 #define TERSE_PRINT(a)          if (!Gbl_VerboseMode) printf PARAM_LIST(a)
 #define VERBOSE_PRINT(a)        if (Gbl_VerboseMode) printf PARAM_LIST(a)
-
 
 #define REPLACE_WHOLE_WORD      0x00
 #define REPLACE_SUBSTRINGS      0x01

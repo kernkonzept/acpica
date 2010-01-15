@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -130,6 +130,16 @@ CmFlushSourceCode (
 static ACPI_STATUS
 FlCheckForAscii (
     ASL_FILE_INFO           *FileInfo);
+
+void
+FlConsumeAnsiComment (
+    ASL_FILE_INFO           *FileInfo,
+    ASL_FILE_STATUS         *Status);
+
+void
+FlConsumeNewComment (
+    ASL_FILE_INFO           *FileInfo,
+    ASL_FILE_STATUS         *Status);
 
 
 /*******************************************************************************
@@ -465,7 +475,7 @@ FlCheckForAscii (
 
         /* Check for an ASCII character */
 
-        if (!isascii (Byte))
+        if (!ACPI_IS_ASCII (Byte))
         {
             if (BadBytes < 10)
             {
@@ -885,19 +895,19 @@ CmCleanupAndExit (
                         10) / Gbl_NsLookupCount);
     }
 
+
+    if (Gbl_ExceptionCount[ASL_ERROR] > ASL_MAX_ERROR_COUNT)
+    {
+        printf ("\nMaximum error count (%d) exceeded\n", ASL_MAX_ERROR_COUNT);
+    }
+
+    UtDisplaySummary (ASL_FILE_STDOUT);
+
     /* Close all open files */
 
     for (i = 2; i < ASL_MAX_FILE_TYPE; i++)
     {
         FlCloseFile (i);
-    }
-
-    /*
-     * TBD: SourceOutput should be .TMP, then rename if we want to keep it?
-     */
-    if (!Gbl_SourceOutputFlag)
-    {
-        remove (Gbl_Files[ASL_FILE_SOURCE_OUTPUT].Filename);
     }
 
     /* Delete AML file if there are errors */
@@ -907,12 +917,19 @@ CmCleanupAndExit (
         remove (Gbl_Files[ASL_FILE_AML_OUTPUT].Filename);
     }
 
-    if (Gbl_ExceptionCount[ASL_ERROR] > ASL_MAX_ERROR_COUNT)
+    /*
+     * Delete intermediate ("combined") source file (if -ls flag not set)
+     *
+     * TBD: SourceOutput should be .TMP, then rename if we want to keep it?
+     */
+    if (!Gbl_SourceOutputFlag)
     {
-        printf ("\nMaximum error count (%d) exceeded\n", ASL_MAX_ERROR_COUNT);
+        if (remove (Gbl_Files[ASL_FILE_SOURCE_OUTPUT].Filename))
+        {
+            printf ("Could not remove SRC file, %s\n",
+                Gbl_Files[ASL_FILE_SOURCE_OUTPUT].Filename);
+        }
     }
-
-    UtDisplaySummary (ASL_FILE_STDOUT);
 }
 
 

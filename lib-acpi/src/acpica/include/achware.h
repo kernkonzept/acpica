@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -141,9 +141,30 @@ AcpiHwGetMode (
 /*
  * hwregs - ACPI Register I/O
  */
+ACPI_STATUS
+AcpiHwValidateRegister (
+    ACPI_GENERIC_ADDRESS    *Reg,
+    UINT8                   MaxBitWidth,
+    UINT64                  *Address);
+
+ACPI_STATUS
+AcpiHwRead (
+    UINT32                  *Value,
+    ACPI_GENERIC_ADDRESS    *Reg);
+
+ACPI_STATUS
+AcpiHwWrite (
+    UINT32                  Value,
+    ACPI_GENERIC_ADDRESS    *Reg);
+
 ACPI_BIT_REGISTER_INFO *
 AcpiHwGetBitRegisterInfo (
     UINT32                  RegisterId);
+
+ACPI_STATUS
+AcpiHwWritePm1Control (
+    UINT32                  Pm1aControl,
+    UINT32                  Pm1bControl);
 
 ACPI_STATUS
 AcpiHwRegisterRead (
@@ -156,20 +177,24 @@ AcpiHwRegisterWrite (
     UINT32                  Value);
 
 ACPI_STATUS
-AcpiHwLowLevelRead (
-    UINT32                  Width,
-    UINT32                  *Value,
-    ACPI_GENERIC_ADDRESS    *Reg);
-
-ACPI_STATUS
-AcpiHwLowLevelWrite (
-    UINT32                  Width,
-    UINT32                  Value,
-    ACPI_GENERIC_ADDRESS    *Reg);
-
-ACPI_STATUS
 AcpiHwClearAcpiStatus (
     void);
+
+
+/*
+ * hwvalid - Port I/O with validation
+ */
+ACPI_STATUS
+AcpiHwReadPort (
+    ACPI_IO_ADDRESS         Address,
+    UINT32                  *Value,
+    UINT32                  Width);
+
+ACPI_STATUS
+AcpiHwWritePort (
+    ACPI_IO_ADDRESS         Address,
+    UINT32                  Value,
+    UINT32                  Width);
 
 
 /*
@@ -186,7 +211,8 @@ AcpiHwWriteGpeEnableReg (
 ACPI_STATUS
 AcpiHwDisableGpeBlock (
     ACPI_GPE_XRUPT_INFO     *GpeXruptInfo,
-    ACPI_GPE_BLOCK_INFO     *GpeBlock);
+    ACPI_GPE_BLOCK_INFO     *GpeBlock,
+    void                    *Context);
 
 ACPI_STATUS
 AcpiHwClearGpe (
@@ -195,7 +221,8 @@ AcpiHwClearGpe (
 ACPI_STATUS
 AcpiHwClearGpeBlock (
     ACPI_GPE_XRUPT_INFO     *GpeXruptInfo,
-    ACPI_GPE_BLOCK_INFO     *GpeBlock);
+    ACPI_GPE_BLOCK_INFO     *GpeBlock,
+    void                    *Context);
 
 ACPI_STATUS
 AcpiHwGetGpeStatus (
@@ -217,7 +244,8 @@ AcpiHwEnableAllWakeupGpes (
 ACPI_STATUS
 AcpiHwEnableRuntimeGpeBlock (
     ACPI_GPE_XRUPT_INFO     *GpeXruptInfo,
-    ACPI_GPE_BLOCK_INFO     *GpeBlock);
+    ACPI_GPE_BLOCK_INFO     *GpeBlock,
+    void                    *Context);
 
 
 /*

@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -120,24 +120,31 @@
 
 /* Current ACPICA subsystem version in YYYYMMDD format */
 
-#define ACPI_CA_VERSION                 0x20081031
+#define ACPI_CA_VERSION                 0x20091214
 
 #include "actypes.h"
 #include "actbl.h"
 
 /*
- * Globals that are publically available, allowing for
- * run time configuration
+ * Globals that are publically available
  */
+extern UINT32               AcpiCurrentGpeCount;
+extern ACPI_TABLE_FADT      AcpiGbl_FADT;
+
+/* Runtime configuration of debug print levels */
+
 extern UINT32               AcpiDbgLevel;
 extern UINT32               AcpiDbgLayer;
+
+/* ACPICA runtime options */
+
 extern UINT8                AcpiGbl_EnableInterpreterSlack;
 extern UINT8                AcpiGbl_AllMethodsSerialized;
 extern UINT8                AcpiGbl_CreateOsiMethod;
 extern UINT8                AcpiGbl_LeaveWakeGpesDisabled;
+extern UINT8                AcpiGbl_UseDefaultRegisterWidths;
 extern ACPI_NAME            AcpiGbl_TraceMethodName;
 extern UINT32               AcpiGbl_TraceFlags;
-extern ACPI_TABLE_FADT      AcpiGbl_FADT;
 
 
 /*
@@ -193,10 +200,6 @@ ACPI_STATUS
 AcpiPurgeCachedObjects (
     void);
 
-ACPI_STATUS
-AcpiInstallInitializationHandler (
-    ACPI_INIT_HANDLER       Handler,
-    UINT32                  Function);
 
 /*
  * ACPI Memory managment
@@ -264,7 +267,8 @@ AcpiWalkNamespace (
     ACPI_OBJECT_TYPE        Type,
     ACPI_HANDLE             StartObject,
     UINT32                  MaxDepth,
-    ACPI_WALK_CALLBACK      UserFunction,
+    ACPI_WALK_CALLBACK      PreOrderVisit,
+    ACPI_WALK_CALLBACK      PostOrderVisit,
     void                    *Context,
     void                    **ReturnValue);
 
@@ -333,7 +337,11 @@ AcpiEvaluateObjectTyped (
 ACPI_STATUS
 AcpiGetObjectInfo (
     ACPI_HANDLE             Handle,
-    ACPI_BUFFER             *ReturnBuffer);
+    ACPI_DEVICE_INFO        **ReturnBuffer);
+
+ACPI_STATUS
+AcpiInstallMethod (
+    UINT8                   *Buffer);
 
 ACPI_STATUS
 AcpiGetNextObject (
@@ -354,8 +362,13 @@ AcpiGetParent (
 
 
 /*
- * Event handler interfaces
+ * Handler interfaces
  */
+ACPI_STATUS
+AcpiInstallInitializationHandler (
+    ACPI_INIT_HANDLER       Handler,
+    UINT32                  Function);
+
 ACPI_STATUS
 AcpiInstallFixedEventHandler (
     UINT32                  AcpiEvent,
@@ -403,6 +416,12 @@ AcpiInstallGpeHandler (
     void                    *Context);
 
 ACPI_STATUS
+AcpiRemoveGpeHandler (
+    ACPI_HANDLE             GpeDevice,
+    UINT32                  GpeNumber,
+    ACPI_EVENT_HANDLER      Address);
+
+ACPI_STATUS
 AcpiInstallExceptionHandler (
     ACPI_EXCEPTION_HANDLER  Handler);
 
@@ -418,12 +437,6 @@ AcpiAcquireGlobalLock (
 ACPI_STATUS
 AcpiReleaseGlobalLock (
     UINT32                  Handle);
-
-ACPI_STATUS
-AcpiRemoveGpeHandler (
-    ACPI_HANDLE             GpeDevice,
-    UINT32                  GpeNumber,
-    ACPI_EVENT_HANDLER      Address);
 
 ACPI_STATUS
 AcpiEnableEvent (
@@ -444,6 +457,10 @@ AcpiGetEventStatus (
     UINT32                  Event,
     ACPI_EVENT_STATUS       *EventStatus);
 
+
+/*
+ * GPE Interfaces
+ */
 ACPI_STATUS
 AcpiSetGpeType (
     ACPI_HANDLE             GpeDevice,
@@ -474,6 +491,19 @@ AcpiGetGpeStatus (
     UINT32                  GpeNumber,
     UINT32                  Flags,
     ACPI_EVENT_STATUS       *EventStatus);
+
+ACPI_STATUS
+AcpiDisableAllGpes (
+    void);
+
+ACPI_STATUS
+AcpiEnableAllRuntimeGpes (
+    void);
+
+ACPI_STATUS
+AcpiGetGpeDevice (
+    UINT32                  GpeIndex,
+    ACPI_HANDLE             *GpeDevice);
 
 ACPI_STATUS
 AcpiInstallGpeBlock (
@@ -534,31 +564,33 @@ AcpiResourceToAddress64 (
     ACPI_RESOURCE           *Resource,
     ACPI_RESOURCE_ADDRESS64 *Out);
 
+
 /*
  * Hardware (ACPI device) interfaces
  */
 ACPI_STATUS
-AcpiGetRegister (
+AcpiReset (
+    void);
+
+ACPI_STATUS
+AcpiRead (
+    UINT64                  *Value,
+    ACPI_GENERIC_ADDRESS    *Reg);
+
+ACPI_STATUS
+AcpiWrite (
+    UINT64                  Value,
+    ACPI_GENERIC_ADDRESS    *Reg);
+
+ACPI_STATUS
+AcpiReadBitRegister (
     UINT32                  RegisterId,
     UINT32                  *ReturnValue);
 
 ACPI_STATUS
-AcpiGetRegisterUnlocked (
-    UINT32                  RegisterId,
-    UINT32                  *ReturnValue);
-
-ACPI_STATUS
-AcpiSetRegister (
+AcpiWriteBitRegister (
     UINT32                  RegisterId,
     UINT32                  Value);
-
-ACPI_STATUS
-AcpiSetFirmwareWakingVector (
-    UINT32                  PhysicalAddress);
-
-ACPI_STATUS
-AcpiSetFirmwareWakingVector64 (
-    UINT64                  PhysicalAddress);
 
 ACPI_STATUS
 AcpiGetSleepTypeData (
@@ -580,11 +612,21 @@ AcpiEnterSleepStateS4bios (
 
 ACPI_STATUS
 AcpiLeaveSleepState (
-    UINT8                   SleepState);
+    UINT8                   SleepState)
+    ;
+ACPI_STATUS
+AcpiSetFirmwareWakingVector (
+    UINT32                  PhysicalAddress);
+
+#if ACPI_MACHINE_WIDTH == 64
+ACPI_STATUS
+AcpiSetFirmwareWakingVector64 (
+    UINT64                  PhysicalAddress);
+#endif
 
 
 /*
- * Debug output
+ * Error/Warning output
  */
 void ACPI_INTERNAL_VAR_XFACE
 AcpiError (
@@ -616,6 +658,9 @@ AcpiInfo (
     ...) ACPI_PRINTF_LIKE(3);
 
 
+/*
+ * Debug output
+ */
 #ifdef ACPI_DEBUG_OUTPUT
 
 void ACPI_INTERNAL_VAR_XFACE

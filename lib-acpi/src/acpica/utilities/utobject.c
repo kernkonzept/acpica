@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -281,6 +281,41 @@ AcpiUtCreatePackageObject (
 
 /*******************************************************************************
  *
+ * FUNCTION:    AcpiUtCreateIntegerObject
+ *
+ * PARAMETERS:  InitialValue        - Initial value for the integer
+ *
+ * RETURN:      Pointer to a new Integer object, null on failure
+ *
+ * DESCRIPTION: Create an initialized integer object
+ *
+ ******************************************************************************/
+
+ACPI_OPERAND_OBJECT *
+AcpiUtCreateIntegerObject (
+    UINT64                  InitialValue)
+{
+    ACPI_OPERAND_OBJECT     *IntegerDesc;
+
+
+    ACPI_FUNCTION_TRACE (UtCreateIntegerObject);
+
+
+    /* Create and initialize a new integer object */
+
+    IntegerDesc = AcpiUtCreateInternalObject (ACPI_TYPE_INTEGER);
+    if (!IntegerDesc)
+    {
+        return_PTR (NULL);
+    }
+
+    IntegerDesc->Integer.Value = InitialValue;
+    return_PTR (IntegerDesc);
+}
+
+
+/*******************************************************************************
+ *
  * FUNCTION:    AcpiUtCreateBufferObject
  *
  * PARAMETERS:  BufferSize             - Size of buffer to be created
@@ -419,7 +454,7 @@ AcpiUtValidInternalObject (
 
     if (!Object)
     {
-        ACPI_DEBUG_PRINT ((ACPI_DB_INFO, "**** Null Object Ptr\n"));
+        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC, "**** Null Object Ptr\n"));
         return (FALSE);
     }
 
@@ -434,7 +469,7 @@ AcpiUtValidInternalObject (
         return (TRUE);
 
     default:
-        ACPI_DEBUG_PRINT ((ACPI_DB_INFO,
+        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC,
                 "%p is not not an ACPI operand obj [%s]\n",
                 Object, AcpiUtGetDescriptorName (Object)));
         break;
@@ -586,7 +621,7 @@ AcpiUtGetSimpleObjectSize (
      * must be accessed bytewise or there may be alignment problems on
      * certain processors
      */
-    switch (ACPI_GET_OBJECT_TYPE (InternalObject))
+    switch (InternalObject->Common.Type)
     {
     case ACPI_TYPE_STRING:
 
@@ -650,7 +685,7 @@ AcpiUtGetSimpleObjectSize (
         ACPI_ERROR ((AE_INFO, "Cannot convert to external object - "
             "unsupported type [%s] %X in object %p",
             AcpiUtGetObjectTypeName (InternalObject),
-            ACPI_GET_OBJECT_TYPE (InternalObject), InternalObject));
+            InternalObject->Common.Type, InternalObject));
         Status = AE_TYPE;
         break;
     }
@@ -809,7 +844,7 @@ AcpiUtGetObjectSize (
 
 
     if ((ACPI_GET_DESCRIPTOR_TYPE (InternalObject) == ACPI_DESC_TYPE_OPERAND) &&
-        (ACPI_GET_OBJECT_TYPE (InternalObject) == ACPI_TYPE_PACKAGE))
+        (InternalObject->Common.Type == ACPI_TYPE_PACKAGE))
     {
         Status = AcpiUtGetPackageObjectSize (InternalObject, ObjLength);
     }

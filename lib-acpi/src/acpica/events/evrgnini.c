@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -125,10 +125,6 @@
         ACPI_MODULE_NAME    ("evrgnini")
 
 /* Local prototypes */
-
-static BOOLEAN
-AcpiEvMatchPciRootBridge (
-    char                    *Id);
 
 static BOOLEAN
 AcpiEvIsPciRootBridge (
@@ -344,7 +340,8 @@ AcpiEvPciConfigRegionSetup (
                     else
                     {
                         ACPI_EXCEPTION ((AE_INFO, Status,
-                            "Could not install PciConfig handler for Root Bridge %4.4s",
+                            "Could not install PciConfig handler "
+                            "for Root Bridge %4.4s",
                             AcpiUtGetNodeName (PciRootNode)));
                     }
                 }
@@ -401,7 +398,8 @@ AcpiEvPciConfigRegionSetup (
      * Get the PCI device and function numbers from the _ADR object contained
      * in the parent's scope.
      */
-    Status = AcpiUtEvaluateNumericObject (METHOD_NAME__ADR, PciDeviceNode, &PciValue);
+    Status = AcpiUtEvaluateNumericObject (METHOD_NAME__ADR,
+                PciDeviceNode, &PciValue);
 
     /*
      * The default is zero, and since the allocation above zeroed the data,
@@ -415,7 +413,8 @@ AcpiEvPciConfigRegionSetup (
 
     /* The PCI segment number comes from the _SEG method */
 
-    Status = AcpiUtEvaluateNumericObject (METHOD_NAME__SEG, PciRootNode, &PciValue);
+    Status = AcpiUtEvaluateNumericObject (METHOD_NAME__SEG,
+                PciRootNode, &PciValue);
     if (ACPI_SUCCESS (Status))
     {
         PciId->Segment = ACPI_LOWORD (PciValue);
@@ -423,7 +422,8 @@ AcpiEvPciConfigRegionSetup (
 
     /* The PCI bus number comes from the _BBN method */
 
-    Status = AcpiUtEvaluateNumericObject (METHOD_NAME__BBN, PciRootNode, &PciValue);
+    Status = AcpiUtEvaluateNumericObject (METHOD_NAME__BBN,
+                PciRootNode, &PciValue);
     if (ACPI_SUCCESS (Status))
     {
         PciId->Bus = ACPI_LOWORD (PciValue);
@@ -435,42 +435,6 @@ AcpiEvPciConfigRegionSetup (
 
     *RegionContext = PciId;
     return_ACPI_STATUS (AE_OK);
-}
-
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiEvMatchPciRootBridge
- *
- * PARAMETERS:  Id              - The HID/CID in string format
- *
- * RETURN:      TRUE if the Id is a match for a PCI/PCI-Express Root Bridge
- *
- * DESCRIPTION: Determine if the input ID is a PCI Root Bridge ID.
- *
- ******************************************************************************/
-
-static BOOLEAN
-AcpiEvMatchPciRootBridge (
-    char                    *Id)
-{
-
-    /*
-     * Check if this is a PCI root.
-     * ACPI 3.0+: check for a PCI Express root also.
-     */
-    if (!(ACPI_STRNCMP (Id,
-            PCI_ROOT_HID_STRING,
-            sizeof (PCI_ROOT_HID_STRING)))      ||
-
-        !(ACPI_STRNCMP (Id,
-            PCI_EXPRESS_ROOT_HID_STRING,
-            sizeof (PCI_EXPRESS_ROOT_HID_STRING))))
-    {
-        return (TRUE);
-    }
-
-    return (FALSE);
 }
 
 
@@ -492,9 +456,10 @@ AcpiEvIsPciRootBridge (
     ACPI_NAMESPACE_NODE     *Node)
 {
     ACPI_STATUS             Status;
-    ACPI_DEVICE_ID          Hid;
-    ACPI_COMPATIBLE_ID_LIST *Cid;
+    ACPI_DEVICE_ID          *Hid;
+    ACPI_DEVICE_ID_LIST     *Cid;
     UINT32                  i;
+    BOOLEAN                 Match;
 
 
     /* Get the _HID and check for a PCI Root Bridge */
@@ -505,7 +470,10 @@ AcpiEvIsPciRootBridge (
         return (FALSE);
     }
 
-    if (AcpiEvMatchPciRootBridge (Hid.Value))
+    Match = AcpiUtIsPciRootBridge (Hid->String);
+    ACPI_FREE (Hid);
+
+    if (Match)
     {
         return (TRUE);
     }
@@ -522,7 +490,7 @@ AcpiEvIsPciRootBridge (
 
     for (i = 0; i < Cid->Count; i++)
     {
-        if (AcpiEvMatchPciRootBridge (Cid->Id[i].Value))
+        if (AcpiUtIsPciRootBridge (Cid->Ids[i].String))
         {
             ACPI_FREE (Cid);
             return (TRUE);
@@ -748,6 +716,20 @@ AcpiEvInitializeRegion (
                 HandlerObj = ObjDesc->ThermalZone.Handler;
                 break;
 
+            case ACPI_TYPE_METHOD:
+                /*
+                 * If we are executing module level code, the original
+                 * Node's object was replaced by this Method object and we
+                 * saved the handler in the method object.
+                 *
+                 * See AcpiNsExecModuleCode
+                 */
+                if (ObjDesc->Method.Flags & AOPOBJ_MODULE_LEVEL)
+                {
+                    HandlerObj = ObjDesc->Method.Extra.Handler;
+                }
+                break;
+
             default:
                 /* Ignore other objects */
                 break;
@@ -769,8 +751,8 @@ AcpiEvInitializeRegion (
                                 AcpiNsLocked);
 
                     /*
-                     * Tell all users that this region is usable by running the _REG
-                     * method
+                     * Tell all users that this region is usable by
+                     * running the _REG method
                      */
                     if (AcpiNsLocked)
                     {

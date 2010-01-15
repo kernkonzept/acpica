@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -252,8 +252,10 @@ AcpiEvQueueNotifyRequest (
      * 2) Global device notify handler
      * 3) Per-device notify handler
      */
-    if ((AcpiGbl_SystemNotify.Handler && (NotifyValue <= ACPI_MAX_SYS_NOTIFY)) ||
-        (AcpiGbl_DeviceNotify.Handler && (NotifyValue > ACPI_MAX_SYS_NOTIFY))  ||
+    if ((AcpiGbl_SystemNotify.Handler &&
+            (NotifyValue <= ACPI_MAX_SYS_NOTIFY)) ||
+        (AcpiGbl_DeviceNotify.Handler &&
+            (NotifyValue > ACPI_MAX_SYS_NOTIFY))  ||
         HandlerObj)
     {
         NotifyInfo = AcpiUtCreateGenericState ();
@@ -265,7 +267,8 @@ AcpiEvQueueNotifyRequest (
         if (!HandlerObj)
         {
             ACPI_DEBUG_PRINT ((ACPI_DB_INFO,
-                "Executing system notify handler for Notify (%4.4s, %X) node %p\n",
+                "Executing system notify handler for Notify (%4.4s, %X) "
+                "node %p\n",
                 AcpiUtGetNodeName (Node), NotifyValue, Node));
         }
 
@@ -639,8 +642,8 @@ AcpiEvReleaseGlobalLock (
          */
         if (Pending)
         {
-            Status = AcpiSetRegister (
-                        ACPI_BITREG_GLOBAL_LOCK_RELEASE, 1);
+            Status = AcpiWriteBitRegister (
+                        ACPI_BITREG_GLOBAL_LOCK_RELEASE, ACPI_ENABLE_EVENT);
         }
 
         ACPI_DEBUG_PRINT ((ACPI_DB_EXEC, "Released hardware Global Lock\n"));
@@ -699,7 +702,7 @@ AcpiEvTerminate (
 
         /* Disable all GPEs in all GPE blocks */
 
-        Status = AcpiEvWalkGpeList (AcpiHwDisableGpeBlock);
+        Status = AcpiEvWalkGpeList (AcpiHwDisableGpeBlock, NULL);
 
         /* Remove SCI handler */
 
@@ -720,7 +723,7 @@ AcpiEvTerminate (
 
     /* Deallocate all handler objects installed within GPE info structs */
 
-    Status = AcpiEvWalkGpeList (AcpiEvDeleteGpeHandlers);
+    Status = AcpiEvWalkGpeList (AcpiEvDeleteGpeHandlers, NULL);
 
     /* Return to original mode if necessary */
 

@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -220,12 +220,12 @@ Unlock:
      * parse trees.
      */
     ACPI_DEBUG_PRINT ((ACPI_DB_INFO,
-        "**** Begin Table Method Parsing and Object Initialization ****\n"));
+        "**** Begin Table Method Parsing and Object Initialization\n"));
 
     Status = AcpiDsInitializeObjects (TableIndex, Node);
 
     ACPI_DEBUG_PRINT ((ACPI_DB_INFO,
-        "**** Completed Table Method Parsing and Object Initialization ****\n"));
+        "**** Completed Table Method Parsing and Object Initialization\n"));
 
     return_ACPI_STATUS (Status);
 }
@@ -376,8 +376,7 @@ AcpiNsDeleteSubtree (
 
     /* Now delete the starting object, and we are done */
 
-    AcpiNsDeleteNode (ChildHandle);
-
+    AcpiNsRemoveNode (ChildHandle);
     return_ACPI_STATUS (AE_OK);
 }
 

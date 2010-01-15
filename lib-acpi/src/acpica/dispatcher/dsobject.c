@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -570,23 +570,36 @@ AcpiDsBuildInternalPackageObj (
     {
         /*
          * NumElements was exhausted, but there are remaining elements in the
-         * PackageList.
+         * PackageList. Truncate the package to NumElements.
          *
          * Note: technically, this is an error, from ACPI spec: "It is an error
          * for NumElements to be less than the number of elements in the
-         * PackageList". However, for now, we just print an error message and
-         * no exception is returned.
+         * PackageList". However, we just print a message and
+         * no exception is returned. This provides Windows compatibility. Some
+         * BIOSs will alter the NumElements on the fly, creating this type
+         * of ill-formed package object.
          */
         while (Arg)
         {
+            /*
+             * We must delete any package elements that were created earlier
+             * and are not going to be used because of the package truncation.
+             */
+            if (Arg->Common.Node)
+            {
+                AcpiUtRemoveReference (
+                    ACPI_CAST_PTR (ACPI_OPERAND_OBJECT, Arg->Common.Node));
+                Arg->Common.Node = NULL;
+            }
+
             /* Find out how many elements there really are */
 
             i++;
             Arg = Arg->Common.Next;
         }
 
-        ACPI_ERROR ((AE_INFO,
-            "Package List length (%X) larger than NumElements count (%X), truncated\n",
+        ACPI_INFO ((AE_INFO,
+            "Actual Package length (0x%X) is larger than NumElements field (0x%X), truncated\n",
             i, ElementCount));
     }
     else if (i < ElementCount)
@@ -596,7 +609,7 @@ AcpiDsBuildInternalPackageObj (
          * Note: this is not an error, the package is padded out with NULLs.
          */
         ACPI_DEBUG_PRINT ((ACPI_DB_INFO,
-            "Package List length (%X) smaller than NumElements count (%X), padded with null elements\n",
+            "Package List length (0x%X) smaller than NumElements count (0x%X), padded with null elements\n",
             i, ElementCount));
     }
 
@@ -661,7 +674,7 @@ AcpiDsCreateNode (
 
     /* Re-type the object according to its argument */
 
-    Node->Type = ACPI_GET_OBJECT_TYPE (ObjDesc);
+    Node->Type = ObjDesc->Common.Type;
 
     /* Attach obj to node */
 
@@ -719,7 +732,7 @@ AcpiDsInitObjectFromOp (
 
     /* Perform per-object initialization */
 
-    switch (ACPI_GET_OBJECT_TYPE (ObjDesc))
+    switch (ObjDesc->Common.Type)
     {
     case ACPI_TYPE_BUFFER:
 
@@ -841,7 +854,7 @@ AcpiDsInitObjectFromOp (
 
             /* Local ID (0-7) is (AML opcode - base AML_LOCAL_OP) */
 
-            ObjDesc->Reference.Value = Opcode - AML_LOCAL_OP;
+            ObjDesc->Reference.Value = ((UINT32) Opcode) - AML_LOCAL_OP;
             ObjDesc->Reference.Class = ACPI_REFCLASS_LOCAL;
 
 #ifndef ACPI_NO_METHOD_EXECUTION
@@ -857,7 +870,7 @@ AcpiDsInitObjectFromOp (
 
             /* Arg ID (0-6) is (AML opcode - base AML_ARG_OP) */
 
-            ObjDesc->Reference.Value = Opcode - AML_ARG_OP;
+            ObjDesc->Reference.Value = ((UINT32) Opcode) - AML_ARG_OP;
             ObjDesc->Reference.Class = ACPI_REFCLASS_ARG;
 
 #ifndef ACPI_NO_METHOD_EXECUTION
@@ -900,7 +913,7 @@ AcpiDsInitObjectFromOp (
     default:
 
         ACPI_ERROR ((AE_INFO, "Unimplemented data type: %X",
-            ACPI_GET_OBJECT_TYPE (ObjDesc)));
+            ObjDesc->Common.Type));
 
         Status = AE_AML_OPERAND_TYPE;
         break;

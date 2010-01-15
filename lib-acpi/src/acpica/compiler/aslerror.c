@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -246,6 +246,11 @@ AePrintException (
     FILE                    *OutputFile;
     FILE                    *SourceFile;
 
+
+    if (Gbl_NoErrors)
+    {
+        return;
+    }
 
     /*
      * Only listing files have a header, and remarks/optimizations
@@ -530,6 +535,7 @@ AslCommonError (
         Gbl_NextError = Gbl_ErrorLog;
         CmDoOutputFiles ();
         CmCleanupAndExit ();
+        exit(1);
     }
 
     return;

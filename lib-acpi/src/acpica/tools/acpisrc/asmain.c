@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -118,6 +118,27 @@
 #include "acpisrc.h"
 #include "acapps.h"
 
+/* Local prototypes */
+
+int
+AsStricmp (
+    char                    *String1,
+    char                    *String2);
+
+int
+AsExaminePaths (
+    ACPI_CONVERSION_TABLE   *ConversionTable,
+    char                    *Source,
+    char                    *Target,
+    UINT32                  *SourceFileType);
+
+void
+AsDisplayStats (
+    void);
+
+void
+AsDisplayUsage (
+    void);
 
 /* Globals */
 
@@ -130,6 +151,7 @@ UINT32                  Gbl_CommentLines = 0;
 UINT32                  Gbl_SourceLines = 0;
 UINT32                  Gbl_LongLines = 0;
 UINT32                  Gbl_TotalLines = 0;
+UINT32                  Gbl_TotalSize = 0;
 UINT32                  Gbl_HeaderLines = 0;
 UINT32                  Gbl_HeaderSize = 0;
 void                    *Gbl_StructDefs = NULL;
@@ -147,6 +169,38 @@ BOOLEAN                 Gbl_Overwrite = FALSE;
 BOOLEAN                 Gbl_WidenDeclarations = FALSE;
 BOOLEAN                 Gbl_IgnoreLoneLineFeeds = FALSE;
 BOOLEAN                 Gbl_HasLoneLineFeeds = FALSE;
+
+
+/******************************************************************************
+ *
+ * FUNCTION:    AsStricmp
+ *
+ * DESCRIPTION: Implementation of the non-ANSI stricmp function (compare
+ *              strings with no case sensitivity)
+ *
+ ******************************************************************************/
+
+int
+AsStricmp (
+    char                    *String1,
+    char                    *String2)
+{
+    int                     c1;
+    int                     c2;
+
+
+    do
+    {
+        c1 = tolower (*String1);
+        c2 = tolower (*String2);
+
+        String1++;
+        String2++;
+    }
+    while ((c1 == c2) && (c1));
+
+    return (c1 - c2);
+}
 
 
 /******************************************************************************
@@ -192,7 +246,7 @@ AsExaminePaths (
         return 0;
     }
 
-    if (!stricmp (Source, Target))
+    if (!AsStricmp (Source, Target))
     {
         printf ("Target path is the same as the source path, overwrite?\n");
         scanf ("%c", &Response);
@@ -236,7 +290,8 @@ AsExaminePaths (
  ******************************************************************************/
 
 void
-AsDisplayStats (void)
+AsDisplayStats (
+    void)
 {
 
     if (Gbl_QuietMode)
@@ -246,6 +301,8 @@ AsDisplayStats (void)
 
     printf ("\nAcpiSrc statistics:\n\n");
     printf ("%8u Files processed\n", Gbl_Files);
+    printf ("%8u Total bytes (%.1fK/file)\n",
+        Gbl_TotalSize, ((double) Gbl_TotalSize/Gbl_Files)/1024);
     printf ("%8u Tabs found\n", Gbl_Tabs);
     printf ("%8u Missing if/else braces\n", Gbl_MissingBraces);
     printf ("%8u Non-ANSI comments found\n", Gbl_NonAnsiComments);
@@ -276,7 +333,8 @@ AsDisplayStats (void)
  ******************************************************************************/
 
 void
-AsDisplayUsage (void)
+AsDisplayUsage (
+    void)
 {
 
     printf ("\n");

@@ -1,5 +1,5 @@
 PROG=	acpiexec
-SRCS=	aeexec.c aemain.c \
+SRCS=	aetables.c aehandlers.c aeexec.c aemain.c \
 	../../common/getopt.c \
 	../../debugger/dbcmds.c \
 	../../debugger/dbdisply.c \
@@ -33,6 +33,8 @@ SRCS=	aeexec.c aemain.c \
 	../../hardware/hwgpe.c \
 	../../hardware/hwregs.c \
 	../../hardware/hwsleep.c \
+	../../hardware/hwvalid.c \
+	../../hardware/hwxface.c \
 	../../dispatcher/dsfield.c \
 	../../dispatcher/dsinit.c \
 	../../dispatcher/dsmethod.c \
@@ -87,6 +89,8 @@ SRCS=	aeexec.c aemain.c \
 	../../namespace/nsobject.c \
 	../../namespace/nsparse.c \
 	../../namespace/nspredef.c \
+	../../namespace/nsrepair.c \
+	../../namespace/nsrepair2.c \
 	../../namespace/nssearch.c \
 	../../namespace/nsutils.c \
 	../../namespace/nswalk.c \
@@ -118,7 +122,9 @@ SRCS=	aeexec.c aemain.c \
 	../../utilities/utdelete.c \
 	../../utilities/uteval.c \
 	../../utilities/utglobal.c \
+	../../utilities/utids.c \
 	../../utilities/utinit.c \
+	../../utilities/utlock.c \
 	../../utilities/utmath.c \
 	../../utilities/utmisc.c \
 	../../utilities/utmutex.c \
@@ -134,7 +140,7 @@ CFLAGS+= -Wall -g -D_LINUX -DNDEBUG -D_CONSOLE -DACPI_EXEC_APP -D_MULTI_THREADED
 
 
 acpiexec : $(patsubst %.c,%.o, $(SRCS))
-	$(CC) $(LDFLAGS) $(patsubst %.c,%.o, $(SRCS)) -o $(PROG)
+	$(CC) $(LDFLAGS) $(patsubst %.c,%.o, $(SRCS)) -lrt -lpthread -o $(PROG)
 
 CLEANFILES= $(PROG)
 

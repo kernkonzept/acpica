@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -1026,7 +1026,7 @@ AcpiDmInterruptDescriptor (
      */
     AcpiDmResourceSource (Resource,
         sizeof (AML_RESOURCE_EXTENDED_IRQ) +
-            (Resource->ExtendedIrq.InterruptCount - 1) * sizeof (UINT32),
+            ((UINT32) Resource->ExtendedIrq.InterruptCount - 1) * sizeof (UINT32),
         Resource->ExtendedIrq.ResourceLength);
 
     /* Insert a descriptor name */

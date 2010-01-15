@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -223,14 +223,12 @@ typedef int                             INT32;
 
 
 typedef INT64                           ACPI_NATIVE_INT;
-
 typedef UINT64                          ACPI_SIZE;
 typedef UINT64                          ACPI_IO_ADDRESS;
 typedef UINT64                          ACPI_PHYSICAL_ADDRESS;
 
 #define ACPI_MAX_PTR                    ACPI_UINT64_MAX
 #define ACPI_SIZE_MAX                   ACPI_UINT64_MAX
-
 #define ACPI_USE_NATIVE_DIVIDE          /* Has native 64-bit integer support */
 
 /*
@@ -264,7 +262,6 @@ typedef int                             INT32;
 
 
 typedef INT32                           ACPI_NATIVE_INT;
-
 typedef UINT32                          ACPI_SIZE;
 typedef UINT32                          ACPI_IO_ADDRESS;
 typedef UINT32                          ACPI_PHYSICAL_ADDRESS;
@@ -282,25 +279,17 @@ typedef UINT32                          ACPI_PHYSICAL_ADDRESS;
 
 /*******************************************************************************
  *
- * OS-dependent and compiler-dependent types
+ * OS-dependent types
  *
  * If the defaults below are not appropriate for the host system, they can
- * be defined in the compiler-specific or OS-specific header, and this will
- * take precedence.
+ * be defined in the OS-specific header, and this will take precedence.
  *
  ******************************************************************************/
-
 
 /* Value returned by AcpiOsGetThreadId */
 
 #ifndef ACPI_THREAD_ID
 #define ACPI_THREAD_ID                  ACPI_SIZE
-#endif
-
-/* Object returned from AcpiOsCreateLock */
-
-#ifndef ACPI_SPINLOCK
-#define ACPI_SPINLOCK                   void *
 #endif
 
 /* Flags for AcpiOsAcquireLock/AcpiOsReleaseLock */
@@ -318,6 +307,45 @@ typedef UINT32                          ACPI_PHYSICAL_ADDRESS;
 #define ACPI_CACHE_T                    void *
 #endif
 #endif
+
+/*
+ * Synchronization objects - Mutexes, Semaphores, and SpinLocks
+ */
+#if (ACPI_MUTEX_TYPE == ACPI_BINARY_SEMAPHORE)
+/*
+ * These macros are used if the host OS does not support a mutex object.
+ * Map the OSL Mutex interfaces to binary semaphores.
+ */
+#define ACPI_MUTEX                      ACPI_SEMAPHORE
+#define AcpiOsCreateMutex(OutHandle)    AcpiOsCreateSemaphore (1, 1, OutHandle)
+#define AcpiOsDeleteMutex(Handle)       (void) AcpiOsDeleteSemaphore (Handle)
+#define AcpiOsAcquireMutex(Handle,Time) AcpiOsWaitSemaphore (Handle, 1, Time)
+#define AcpiOsReleaseMutex(Handle)      (void) AcpiOsSignalSemaphore (Handle, 1)
+#endif
+
+/* Configurable types for synchronization objects */
+
+#ifndef ACPI_SPINLOCK
+#define ACPI_SPINLOCK                   void *
+#endif
+
+#ifndef ACPI_SEMAPHORE
+#define ACPI_SEMAPHORE                  void *
+#endif
+
+#ifndef ACPI_MUTEX
+#define ACPI_MUTEX                      void *
+#endif
+
+
+/*******************************************************************************
+ *
+ * Compiler-dependent types
+ *
+ * If the defaults below are not appropriate for the host compiler, they can
+ * be defined in the compiler-specific header, and this will take precedence.
+ *
+ ******************************************************************************/
 
 /* Use C99 uintptr_t for pointer casting if available, "void *" otherwise */
 
@@ -358,10 +386,16 @@ typedef UINT32                          ACPI_PHYSICAL_ADDRESS;
  *
  *****************************************************************************/
 
-/* Number of distinct GPE register blocks and register width */
+/* Number of distinct FADT-based GPE register blocks (GPE0 and GPE1) */
 
 #define ACPI_MAX_GPE_BLOCKS             2
+
+/* Default ACPI register widths */
+
 #define ACPI_GPE_REGISTER_WIDTH         8
+#define ACPI_PM1_REGISTER_WIDTH         16
+#define ACPI_PM2_REGISTER_WIDTH         8
+#define ACPI_PM_TIMER_WIDTH             32
 
 /* Names within the namespace are 4 bytes long */
 
@@ -381,7 +415,7 @@ typedef UINT32                          ACPI_PHYSICAL_ADDRESS;
 
 /* PM Timer ticks per second (HZ) */
 
-#define PM_TIMER_FREQUENCY  3579545
+#define PM_TIMER_FREQUENCY              3579545
 
 
 /*******************************************************************************
@@ -444,12 +478,6 @@ typedef struct uint32_struct
 } UINT32_STRUCT;
 
 
-/* Synchronization objects */
-
-#define ACPI_MUTEX                      void *
-#define ACPI_SEMAPHORE                  void *
-
-
 /*
  * Acpi integer width. In ACPI version 1, integers are 32 bits. In ACPI
  * version 2, integers are 64 bits. Note that this pertains to the ACPI integer
@@ -460,12 +488,6 @@ typedef UINT64                          ACPI_INTEGER;
 #define ACPI_INTEGER_MAX                ACPI_UINT64_MAX
 #define ACPI_INTEGER_BIT_SIZE           64
 #define ACPI_MAX_DECIMAL_DIGITS         20  /* 2^64 = 18,446,744,073,709,551,616 */
-
-
-#if ACPI_MACHINE_WIDTH == 64
-#define ACPI_USE_NATIVE_DIVIDE          /* Use compiler native 64-bit divide */
-#endif
-
 #define ACPI_MAX64_DECIMAL_DIGITS       20
 #define ACPI_MAX32_DECIMAL_DIGITS       10
 #define ACPI_MAX16_DECIMAL_DIGITS        5
@@ -487,22 +509,12 @@ typedef UINT64                          ACPI_INTEGER;
 
 /* Data manipulation */
 
-#define ACPI_LOWORD(l)                  ((UINT16)(UINT32)(l))
-#define ACPI_HIWORD(l)                  ((UINT16)((((UINT32)(l)) >> 16) & 0xFFFF))
-#define ACPI_LOBYTE(l)                  ((UINT8)(UINT16)(l))
-#define ACPI_HIBYTE(l)                  ((UINT8)((((UINT16)(l)) >> 8) & 0xFF))
-
-/* Full 64-bit integer must be available on both 32-bit and 64-bit platforms */
-
-typedef struct acpi_integer_overlay
-{
-    UINT32              LoDword;
-    UINT32              HiDword;
-
-} ACPI_INTEGER_OVERLAY;
-
-#define ACPI_LODWORD(Integer)           (ACPI_CAST_PTR (ACPI_INTEGER_OVERLAY, &Integer)->LoDword)
-#define ACPI_HIDWORD(Integer)           (ACPI_CAST_PTR (ACPI_INTEGER_OVERLAY, &Integer)->HiDword)
+#define ACPI_LOBYTE(Integer)            ((UINT8)   (UINT16)(Integer))
+#define ACPI_HIBYTE(Integer)            ((UINT8) (((UINT16)(Integer)) >> 8))
+#define ACPI_LOWORD(Integer)            ((UINT16)  (UINT32)(Integer))
+#define ACPI_HIWORD(Integer)            ((UINT16)(((UINT32)(Integer)) >> 16))
+#define ACPI_LODWORD(Integer64)         ((UINT32)  (UINT64)(Integer64))
+#define ACPI_HIDWORD(Integer64)         ((UINT32)(((UINT64)(Integer64)) >> 32))
 
 #define ACPI_SET_BIT(target,bit)        ((target) |= (bit))
 #define ACPI_CLEAR_BIT(target,bit)      ((target) &= ~(bit))
@@ -804,7 +816,8 @@ typedef UINT8                           ACPI_ADR_SPACE_TYPE;
 #define ACPI_ADR_SPACE_SMBUS            (ACPI_ADR_SPACE_TYPE) 4
 #define ACPI_ADR_SPACE_CMOS             (ACPI_ADR_SPACE_TYPE) 5
 #define ACPI_ADR_SPACE_PCI_BAR_TARGET   (ACPI_ADR_SPACE_TYPE) 6
-#define ACPI_ADR_SPACE_DATA_TABLE       (ACPI_ADR_SPACE_TYPE) 7
+#define ACPI_ADR_SPACE_IPMI             (ACPI_ADR_SPACE_TYPE) 7
+#define ACPI_ADR_SPACE_DATA_TABLE       (ACPI_ADR_SPACE_TYPE) 8
 #define ACPI_ADR_SPACE_FIXED_HARDWARE   (ACPI_ADR_SPACE_TYPE) 127
 
 
@@ -842,16 +855,25 @@ typedef UINT8                           ACPI_ADR_SPACE_TYPE;
 #define ACPI_BITREG_SCI_ENABLE                  0x0E
 #define ACPI_BITREG_BUS_MASTER_RLD              0x0F
 #define ACPI_BITREG_GLOBAL_LOCK_RELEASE         0x10
-#define ACPI_BITREG_SLEEP_TYPE_A                0x11
-#define ACPI_BITREG_SLEEP_TYPE_B                0x12
-#define ACPI_BITREG_SLEEP_ENABLE                0x13
+#define ACPI_BITREG_SLEEP_TYPE                  0x11
+#define ACPI_BITREG_SLEEP_ENABLE                0x12
 
 /* PM2 Control register */
 
-#define ACPI_BITREG_ARB_DISABLE                 0x14
+#define ACPI_BITREG_ARB_DISABLE                 0x13
 
-#define ACPI_BITREG_MAX                         0x14
+#define ACPI_BITREG_MAX                         0x13
 #define ACPI_NUM_BITREG                         ACPI_BITREG_MAX + 1
+
+
+/* Status register values. A 1 clears a status bit. 0 = no effect */
+
+#define ACPI_CLEAR_STATUS                       1
+
+/* Enable and Control register values */
+
+#define ACPI_ENABLE_EVENT                       1
+#define ACPI_DISABLE_EVENT                      0
 
 
 /*
@@ -1035,7 +1057,6 @@ void (*ACPI_NOTIFY_HANDLER) (
 typedef
 void (*ACPI_OBJECT_HANDLER) (
     ACPI_HANDLE                     Object,
-    UINT32                          Function,
     void                            *Data);
 
 typedef
@@ -1102,46 +1123,67 @@ ACPI_STATUS (*ACPI_WALK_CALLBACK) (
 #define ACPI_INTERRUPT_NOT_HANDLED      0x00
 #define ACPI_INTERRUPT_HANDLED          0x01
 
+/* Length of 32-bit EISAID values when converted back to a string */
 
-/* Length of _HID, _UID, _CID, and UUID values */
+#define ACPI_EISAID_STRING_SIZE         8   /* Includes null terminator */
 
-#define ACPI_DEVICE_ID_LENGTH           0x09
-#define ACPI_MAX_CID_LENGTH             48
+/* Length of UUID (string) values */
+
 #define ACPI_UUID_LENGTH                16
 
-/* Common string version of device HIDs and UIDs */
+
+/* Structures used for device/processor HID, UID, CID */
 
 typedef struct acpi_device_id
 {
-    char                            Value[ACPI_DEVICE_ID_LENGTH];
+    UINT32                          Length;             /* Length of string + null */
+    char                            *String;
 
 } ACPI_DEVICE_ID;
 
-/* Common string version of device CIDs */
-
-typedef struct acpi_compatible_id
+typedef struct acpi_device_id_list
 {
-    char                            Value[ACPI_MAX_CID_LENGTH];
+    UINT32                          Count;              /* Number of IDs in Ids array */
+    UINT32                          ListSize;           /* Size of list, including ID strings */
+    ACPI_DEVICE_ID                  Ids[1];             /* ID array */
 
-} ACPI_COMPATIBLE_ID;
+} ACPI_DEVICE_ID_LIST;
 
-typedef struct acpi_compatible_id_list
+/*
+ * Structure returned from AcpiGetObjectInfo.
+ * Optimized for both 32- and 64-bit builds
+ */
+typedef struct acpi_device_info
 {
-    UINT32                          Count;
-    UINT32                          Size;
-    ACPI_COMPATIBLE_ID              Id[1];
+    UINT32                          InfoSize;           /* Size of info, including ID strings */
+    UINT32                          Name;               /* ACPI object Name */
+    ACPI_OBJECT_TYPE                Type;               /* ACPI object Type */
+    UINT8                           ParamCount;         /* If a method, required parameter count */
+    UINT8                           Valid;              /* Indicates which optional fields are valid */
+    UINT8                           Flags;              /* Miscellaneous info */
+    UINT8                           HighestDstates[4];  /* _SxD values: 0xFF indicates not valid */
+    UINT8                           LowestDstates[5];   /* _SxW values: 0xFF indicates not valid */
+    UINT32                          CurrentStatus;      /* _STA value */
+    ACPI_INTEGER                    Address;            /* _ADR value */
+    ACPI_DEVICE_ID                  HardwareId;         /* _HID value */
+    ACPI_DEVICE_ID                  UniqueId;           /* _UID value */
+    ACPI_DEVICE_ID_LIST             CompatibleIdList;   /* _CID list <must be last> */
 
-} ACPI_COMPATIBLE_ID_LIST;
+} ACPI_DEVICE_INFO;
 
+/* Values for Flags field above (AcpiGetObjectInfo) */
 
-/* Structure and flags for AcpiGetObjectInfo */
+#define ACPI_PCI_ROOT_BRIDGE            0x01
 
-#define ACPI_VALID_STA                  0x0001
-#define ACPI_VALID_ADR                  0x0002
-#define ACPI_VALID_HID                  0x0004
-#define ACPI_VALID_UID                  0x0008
-#define ACPI_VALID_CID                  0x0010
-#define ACPI_VALID_SXDS                 0x0020
+/* Flags for Valid field above (AcpiGetObjectInfo) */
+
+#define ACPI_VALID_STA                  0x01
+#define ACPI_VALID_ADR                  0x02
+#define ACPI_VALID_HID                  0x04
+#define ACPI_VALID_UID                  0x08
+#define ACPI_VALID_CID                  0x10
+#define ACPI_VALID_SXDS                 0x20
+#define ACPI_VALID_SXWS                 0x40
 
 /* Flags for _STA method */
 
@@ -1151,36 +1193,6 @@ typedef struct acpi_compatible_id_list
 #define ACPI_STA_DEVICE_FUNCTIONING     0x08
 #define ACPI_STA_DEVICE_OK              0x08 /* Synonym */
 #define ACPI_STA_BATTERY_PRESENT        0x10
-
-
-#define ACPI_COMMON_OBJ_INFO \
-    ACPI_OBJECT_TYPE                Type;           /* ACPI object type */ \
-    ACPI_NAME                       Name            /* ACPI object Name */
-
-
-typedef struct acpi_obj_info_header
-{
-    ACPI_COMMON_OBJ_INFO;
-
-} ACPI_OBJ_INFO_HEADER;
-
-
-/* Structure returned from Get Object Info */
-
-typedef struct acpi_device_info
-{
-    ACPI_COMMON_OBJ_INFO;
-
-    UINT32                          ParamCount;         /* If a method, required parameter count */
-    UINT32                          Valid;              /* Indicates which fields below are valid */
-    UINT32                          CurrentStatus;      /* _STA value */
-    ACPI_INTEGER                    Address;            /* _ADR value if any */
-    ACPI_DEVICE_ID                  HardwareId;         /* _HID value if any */
-    ACPI_DEVICE_ID                  UniqueId;           /* _UID value if any */
-    UINT8                           HighestDstates[4];  /* _SxD values: 0xFF indicates not valid */
-    ACPI_COMPATIBLE_ID_LIST         CompatibilityId;    /* List of _CIDs if any */
-
-} ACPI_DEVICE_INFO;
 
 
 /* Context structs for address space handlers */
@@ -1193,7 +1205,6 @@ typedef struct acpi_pci_id
     UINT16                          Function;
 
 } ACPI_PCI_ID;
-
 
 typedef struct acpi_mem_space_context
 {

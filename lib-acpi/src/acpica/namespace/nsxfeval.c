@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -281,7 +281,7 @@ AcpiEvaluateObject (
 
     /* Convert and validate the device handle */
 
-    Info->PrefixNode = AcpiNsMapHandleToNode (Handle);
+    Info->PrefixNode = AcpiNsValidateHandle (Handle);
     if (!Info->PrefixNode)
     {
         Status = AE_BAD_PARAMETER;
@@ -492,7 +492,7 @@ AcpiNsResolveReferences (
 
     /* We are interested in reference objects only */
 
-    if (ACPI_GET_OBJECT_TYPE (Info->ReturnObject) != ACPI_TYPE_LOCAL_REFERENCE)
+    if ((Info->ReturnObject)->Common.Type != ACPI_TYPE_LOCAL_REFERENCE)
     {
         return;
     }
@@ -544,8 +544,11 @@ AcpiNsResolveReferences (
  * PARAMETERS:  Type                - ACPI_OBJECT_TYPE to search for
  *              StartObject         - Handle in namespace where search begins
  *              MaxDepth            - Depth to which search is to reach
- *              UserFunction        - Called when an object of "Type" is found
- *              Context             - Passed to user function
+ *              PreOrderVisit       - Called during tree pre-order visit
+ *                                    when an object of "Type" is found
+ *              PostOrderVisit      - Called during tree post-order visit
+ *                                    when an object of "Type" is found
+ *              Context             - Passed to user function(s) above
  *              ReturnValue         - Location where return value of
  *                                    UserFunction is put if terminated early
  *
@@ -554,16 +557,16 @@ AcpiNsResolveReferences (
  *
  * DESCRIPTION: Performs a modified depth-first walk of the namespace tree,
  *              starting (and ending) at the object specified by StartHandle.
- *              The UserFunction is called whenever an object that matches
- *              the type parameter is found.  If the user function returns
+ *              The callback function is called whenever an object that matches
+ *              the type parameter is found. If the callback function returns
  *              a non-zero value, the search is terminated immediately and this
  *              value is returned to the caller.
  *
  *              The point of this procedure is to provide a generic namespace
  *              walk routine that can be called from multiple places to
- *              provide multiple services;  the User Function can be tailored
- *              to each task, whether it is a print function, a compare
- *              function, etc.
+ *              provide multiple services; the callback function(s) can be
+ *              tailored to each task, whether it is a print function,
+ *              a compare function, etc.
  *
  ******************************************************************************/
 
@@ -572,7 +575,8 @@ AcpiWalkNamespace (
     ACPI_OBJECT_TYPE        Type,
     ACPI_HANDLE             StartObject,
     UINT32                  MaxDepth,
-    ACPI_WALK_CALLBACK      UserFunction,
+    ACPI_WALK_CALLBACK      PreOrderVisit,
+    ACPI_WALK_CALLBACK      PostOrderVisit,
     void                    *Context,
     void                    **ReturnValue)
 {
@@ -586,28 +590,48 @@ AcpiWalkNamespace (
 
     if ((Type > ACPI_TYPE_LOCAL_MAX) ||
         (!MaxDepth)                  ||
-        (!UserFunction))
+        (!PreOrderVisit && !PostOrderVisit))
     {
         return_ACPI_STATUS (AE_BAD_PARAMETER);
     }
 
     /*
-     * Lock the namespace around the walk.
-     * The namespace will be unlocked/locked around each call
-     * to the user function - since this function
-     * must be allowed to make Acpi calls itself.
+     * Need to acquire the namespace reader lock to prevent interference
+     * with any concurrent table unloads (which causes the deletion of
+     * namespace objects). We cannot allow the deletion of a namespace node
+     * while the user function is using it. The exception to this are the
+     * nodes created and deleted during control method execution -- these
+     * nodes are marked as temporary nodes and are ignored by the namespace
+     * walk. Thus, control methods can be executed while holding the
+     * namespace deletion lock (and the user function can execute control
+     * methods.)
+     */
+    Status = AcpiUtAcquireReadLock (&AcpiGbl_NamespaceRwLock);
+    if (ACPI_FAILURE (Status))
+    {
+        return (Status);
+    }
+
+    /*
+     * Lock the namespace around the walk. The namespace will be
+     * unlocked/locked around each call to the user function - since the user
+     * function must be allowed to make ACPICA calls itself (for example, it
+     * will typically execute control methods during device enumeration.)
      */
     Status = AcpiUtAcquireMutex (ACPI_MTX_NAMESPACE);
     if (ACPI_FAILURE (Status))
     {
-        return_ACPI_STATUS (Status);
+        goto UnlockAndExit;
     }
 
     Status = AcpiNsWalkNamespace (Type, StartObject, MaxDepth,
-                    ACPI_NS_WALK_UNLOCK,
-                    UserFunction, Context, ReturnValue);
+                ACPI_NS_WALK_UNLOCK, PreOrderVisit,
+                PostOrderVisit, Context, ReturnValue);
 
     (void) AcpiUtReleaseMutex (ACPI_MTX_NAMESPACE);
+
+UnlockAndExit:
+    (void) AcpiUtReleaseReadLock (&AcpiGbl_NamespaceRwLock);
     return_ACPI_STATUS (Status);
 }
 
@@ -639,10 +663,11 @@ AcpiNsGetDeviceCallback (
     ACPI_STATUS             Status;
     ACPI_NAMESPACE_NODE     *Node;
     UINT32                  Flags;
-    ACPI_DEVICE_ID          Hid;
-    ACPI_COMPATIBLE_ID_LIST *Cid;
+    ACPI_DEVICE_ID          *Hid;
+    ACPI_DEVICE_ID_LIST     *Cid;
     UINT32                  i;
     BOOLEAN                 Found;
+    int                     NoMatch;
 
 
     Status = AcpiUtAcquireMutex (ACPI_MTX_NAMESPACE);
@@ -651,7 +676,7 @@ AcpiNsGetDeviceCallback (
         return (Status);
     }
 
-    Node = AcpiNsMapHandleToNode (ObjHandle);
+    Node = AcpiNsValidateHandle (ObjHandle);
     Status = AcpiUtReleaseMutex (ACPI_MTX_NAMESPACE);
     if (ACPI_FAILURE (Status))
     {
@@ -696,7 +721,10 @@ AcpiNsGetDeviceCallback (
             return (AE_CTRL_DEPTH);
         }
 
-        if (ACPI_STRNCMP (Hid.Value, Info->Hid, sizeof (Hid.Value)) != 0)
+        NoMatch = ACPI_STRCMP (Hid->String, Info->Hid);
+        ACPI_FREE (Hid);
+
+        if (NoMatch)
         {
             /*
              * HID does not match, attempt match within the
@@ -717,8 +745,7 @@ AcpiNsGetDeviceCallback (
             Found = FALSE;
             for (i = 0; i < Cid->Count; i++)
             {
-                if (ACPI_STRNCMP (Cid->Id[i].Value, Info->Hid,
-                        sizeof (ACPI_COMPATIBLE_ID)) == 0)
+                if (ACPI_STRCMP (Cid->Ids[i].String, Info->Hid) == 0)
                 {
                     /* Found a matching CID */
 
@@ -811,7 +838,7 @@ AcpiGetDevices (
 
     Status = AcpiNsWalkNamespace (ACPI_TYPE_DEVICE, ACPI_ROOT_OBJECT,
                 ACPI_UINT32_MAX, ACPI_NS_WALK_UNLOCK,
-                AcpiNsGetDeviceCallback, &Info, ReturnValue);
+                AcpiNsGetDeviceCallback, NULL, &Info, ReturnValue);
 
     (void) AcpiUtReleaseMutex (ACPI_MTX_NAMESPACE);
     return_ACPI_STATUS (Status);
@@ -861,7 +888,7 @@ AcpiAttachData (
 
     /* Convert and validate the handle */
 
-    Node = AcpiNsMapHandleToNode (ObjHandle);
+    Node = AcpiNsValidateHandle (ObjHandle);
     if (!Node)
     {
         Status = AE_BAD_PARAMETER;
@@ -916,7 +943,7 @@ AcpiDetachData (
 
     /* Convert and validate the handle */
 
-    Node = AcpiNsMapHandleToNode (ObjHandle);
+    Node = AcpiNsValidateHandle (ObjHandle);
     if (!Node)
     {
         Status = AE_BAD_PARAMETER;
@@ -974,7 +1001,7 @@ AcpiGetData (
 
     /* Convert and validate the handle */
 
-    Node = AcpiNsMapHandleToNode (ObjHandle);
+    Node = AcpiNsValidateHandle (ObjHandle);
     if (!Node)
     {
         Status = AE_BAD_PARAMETER;

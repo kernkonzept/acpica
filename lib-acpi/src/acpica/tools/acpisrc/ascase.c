@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -115,6 +115,13 @@
  *****************************************************************************/
 
 #include "acpisrc.h"
+
+/* Local prototypes */
+
+void
+AsUppercaseTokens (
+    char                    *Buffer,
+    char                    *PrefixString);
 
 
 /******************************************************************************
@@ -324,7 +331,7 @@ AsMixedCaseToUnderscores (
             }
         }
 
-// OBSOLETE CODE, all quoted strings now completely ignored.
+/* OBSOLETE CODE, all quoted strings now completely ignored. */
 #if 0
         /* Ignore format specification fields */
 

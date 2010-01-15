@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -118,7 +118,6 @@
 #include "accommon.h"
 #include "acparser.h"
 #include "amlcode.h"
-#include "acdebug.h"
 #include "acdisasm.h"
 #include "acdispat.h"
 #include "acnamesp.h"
@@ -184,7 +183,7 @@ AcpiDmResourceDescendingOp (
  *
  * FUNCTION:    AcpiDmDumpTree
  *
- * PARAMETERS:  Origin          - Starting object
+ * PARAMETERS:  Origin              - Starting object
  *
  * RETURN:      None
  *
@@ -218,7 +217,7 @@ AcpiDmDumpTree (
  *
  * FUNCTION:    AcpiDmFindOrphanMethods
  *
- * PARAMETERS:  Origin          - Starting object
+ * PARAMETERS:  Origin              - Starting object
  *
  * RETURN:      None
  *
@@ -426,7 +425,6 @@ AcpiDmDumpDescending (
     void                    *Context)
 {
     ACPI_OP_WALK_INFO       *Info = Context;
-    const ACPI_OPCODE_INFO  *OpInfo;
     char                    *Path;
 
 
@@ -435,11 +433,9 @@ AcpiDmDumpDescending (
         return (AE_OK);
     }
 
-    OpInfo = AcpiPsGetOpcodeInfo (Op->Common.AmlOpcode);
-    Info->Count++;
-
     /* Most of the information (count, level, name) here */
 
+    Info->Count++;
     AcpiOsPrintf ("% 5d [%2.2d] ", Info->Count, Level);
     AcpiDmIndent (Level);
     AcpiOsPrintf ("%-28s", AcpiPsGetOpcodeName (Op->Common.AmlOpcode));
@@ -472,7 +468,10 @@ AcpiDmDumpDescending (
     case AML_METHOD_OP:
     case AML_DEVICE_OP:
     case AML_INT_NAMEDFIELD_OP:
-        AcpiOsPrintf ("%4.4s", &Op->Named.Name);
+        AcpiOsPrintf ("%4.4s", ACPI_CAST_PTR (char, &Op->Named.Name));
+        break;
+
+    default:
         break;
     }
 
@@ -533,7 +532,7 @@ AcpiDmFindOrphanDescending (
             {
                 /* This NamePath has no args, assume it is an integer */
 
-                AcpiDmAddToExternalList (ChildOp->Common.Value.String, ACPI_TYPE_INTEGER, 0);
+                AcpiDmAddToExternalList (ChildOp, ChildOp->Common.Value.String, ACPI_TYPE_INTEGER, 0);
                 return (AE_OK);
             }
 
@@ -544,11 +543,11 @@ AcpiDmFindOrphanDescending (
             {
                 /* One Arg means this is just a Store(Name,Target) */
 
-                AcpiDmAddToExternalList (ChildOp->Common.Value.String, ACPI_TYPE_INTEGER, 0);
+                AcpiDmAddToExternalList (ChildOp, ChildOp->Common.Value.String, ACPI_TYPE_INTEGER, 0);
                 return (AE_OK);
             }
 
-            AcpiDmAddToExternalList (ChildOp->Common.Value.String, ACPI_TYPE_METHOD, ArgCount);
+            AcpiDmAddToExternalList (ChildOp, ChildOp->Common.Value.String, ACPI_TYPE_METHOD, ArgCount);
         }
         break;
 #endif
@@ -564,7 +563,7 @@ AcpiDmFindOrphanDescending (
             {
                 /* This NamePath has no args, assume it is an integer */
 
-                AcpiDmAddToExternalList (ChildOp->Common.Value.String, ACPI_TYPE_INTEGER, 0);
+                AcpiDmAddToExternalList (ChildOp, ChildOp->Common.Value.String, ACPI_TYPE_INTEGER, 0);
                 return (AE_OK);
             }
 
@@ -573,11 +572,11 @@ AcpiDmFindOrphanDescending (
             {
                 /* One Arg means this is just a Store(Name,Target) */
 
-                AcpiDmAddToExternalList (ChildOp->Common.Value.String, ACPI_TYPE_INTEGER, 0);
+                AcpiDmAddToExternalList (ChildOp, ChildOp->Common.Value.String, ACPI_TYPE_INTEGER, 0);
                 return (AE_OK);
             }
 
-            AcpiDmAddToExternalList (ChildOp->Common.Value.String, ACPI_TYPE_METHOD, ArgCount);
+            AcpiDmAddToExternalList (ChildOp, ChildOp->Common.Value.String, ACPI_TYPE_METHOD, ArgCount);
         }
         break;
 
@@ -608,7 +607,7 @@ AcpiDmFindOrphanDescending (
                      /* And namepath is the first argument */
                      (ParentOp->Common.Value.Arg == Op))
                 {
-                    AcpiDmAddToExternalList (Op->Common.Value.String, ACPI_TYPE_INTEGER, 0);
+                    AcpiDmAddToExternalList (Op, Op->Common.Value.String, ACPI_TYPE_INTEGER, 0);
                     break;
                 }
             }
@@ -618,9 +617,12 @@ AcpiDmFindOrphanDescending (
              * operator) - it *must* be a method invocation, nothing else is
              * grammatically possible.
              */
-            AcpiDmAddToExternalList (Op->Common.Value.String, ACPI_TYPE_METHOD, ArgCount);
+            AcpiDmAddToExternalList (Op, Op->Common.Value.String, ACPI_TYPE_METHOD, ArgCount);
 
         }
+        break;
+
+    default:
         break;
     }
 
@@ -654,6 +656,9 @@ AcpiDmLoadDescendingOp (
     char                    *Path = NULL;
     ACPI_PARSE_OBJECT       *NextOp;
     ACPI_NAMESPACE_NODE     *Node;
+    char                    FieldPath[5];
+    BOOLEAN                 PreDefined = FALSE;
+    UINT8                   PreDefineIndex = 0;
 
 
     WalkState = Info->WalkState;
@@ -676,6 +681,13 @@ AcpiDmLoadDescendingOp (
         /* For all named operators, get the new name */
 
         Path = (char *) Op->Named.Path;
+
+        if (!Path && Op->Common.AmlOpcode == AML_INT_NAMEDFIELD_OP)
+        {
+            *ACPI_CAST_PTR (UINT32, &FieldPath[0]) = Op->Named.Name;
+            FieldPath[4] = 0;
+            Path = FieldPath;
+        }
     }
     else if (OpInfo->Flags & AML_CREATE)
     {
@@ -702,7 +714,36 @@ AcpiDmLoadDescendingOp (
                 WalkState, &Node);
 
     Op->Common.Node = Node;
-    Node->OwnerId = WalkState->OwnerId;
+
+    if (ACPI_SUCCESS (Status))
+    {
+        /* Check if it's a predefined node */
+
+        while (AcpiGbl_PreDefinedNames[PreDefineIndex].Name)
+        {
+            if (!ACPI_STRNCMP (Node->Name.Ascii,
+                AcpiGbl_PreDefinedNames[PreDefineIndex].Name, 4))
+            {
+                PreDefined = TRUE;
+                break;
+            }
+
+            PreDefineIndex++;
+        }
+
+        /*
+         * Set node owner id if it satisfies all the following conditions:
+         * 1) Not a predefined node, _SB_ etc
+         * 2) Not the root node
+         * 3) Not a node created by Scope
+         */
+
+        if (!PreDefined && Node != AcpiGbl_RootNode &&
+            Op->Common.AmlOpcode != AML_SCOPE_OP)
+        {
+            Node->OwnerId = WalkState->OwnerId;
+        }
+    }
 
 
 Exit:
@@ -745,6 +786,7 @@ AcpiDmXrefDescendingOp (
     const ACPI_OPCODE_INFO  *OpInfo;
     ACPI_WALK_STATE         *WalkState;
     ACPI_OBJECT_TYPE        ObjectType;
+    ACPI_OBJECT_TYPE        ObjectType2;
     ACPI_STATUS             Status;
     char                    *Path = NULL;
     ACPI_PARSE_OBJECT       *NextOp;
@@ -812,7 +854,7 @@ AcpiDmXrefDescendingOp (
     {
         if (Status == AE_NOT_FOUND)
         {
-            AcpiDmAddToExternalList (Path, (UINT8) ObjectType, 0);
+            AcpiDmAddToExternalList (Op, Path, (UINT8) ObjectType, 0);
 
             /*
              * We could install this into the namespace, but we catch duplicate
@@ -832,35 +874,25 @@ AcpiDmXrefDescendingOp (
      */
     else if (Node->OwnerId && WalkState->OwnerId != Node->OwnerId)
     {
+        ObjectType2 = ObjectType;
+
         Object = AcpiNsGetAttachedObject (Node);
         if (Object)
         {
-            ObjectType = Object->Common.Type;
+            ObjectType2 = Object->Common.Type;
         }
 
-        /* Generate External(xxx, DeviceObj) for a Scope */
-
-        if (ObjectType == ACPI_TYPE_LOCAL_SCOPE)
+        if (ObjectType2 == ACPI_TYPE_METHOD)
         {
-            ObjectType = ACPI_TYPE_DEVICE;
-        }
-
-        if (ObjectType == ACPI_TYPE_METHOD)
-        {
-            AcpiDmAddToExternalList (Path, ACPI_TYPE_METHOD,
+            AcpiDmAddToExternalList (Op, Path, ACPI_TYPE_METHOD,
                 Object->Method.ParamCount);
         }
         else
         {
-            AcpiDmAddToExternalList (Path, (UINT8) ObjectType, 0);
+            AcpiDmAddToExternalList (Op, Path, (UINT8) ObjectType2, 0);
         }
 
-        /*
-         * Set it NULL since the node is found in external table
-         * And prevent it from opening new scope at below code
-         */
-
-        Op->Common.Node = NULL;
+        Op->Common.Node = Node;
     }
     else
     {

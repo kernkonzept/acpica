@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -129,6 +129,17 @@
 
 
 #define DB_FULL_OP_INFO     "[%4.4s] @%5.5X #%4.4X:  "
+
+/* Stub for non-compiler code */
+
+#ifndef ACPI_ASL_COMPILER
+void
+AcpiDmEmitExternals (
+    void)
+{
+    return;
+}
+#endif
 
 /* Local prototypes */
 
@@ -459,7 +470,6 @@ AcpiDmDescendingOp (
     const ACPI_OPCODE_INFO  *OpInfo;
     UINT32                  Name;
     ACPI_PARSE_OBJECT       *NextOp;
-    ACPI_EXTERNAL_LIST      *NextExternal;
 
 
     if (Op->Common.DisasmFlags & ACPI_PARSEOP_IGNORE)
@@ -491,54 +501,7 @@ AcpiDmDescendingOp (
 
             /* Emit all External() declarations here */
 
-            if (AcpiGbl_ExternalList)
-            {
-                /*
-                 * Walk the list of externals (unresolved references)
-                 * found during parsing
-                 */
-                while (AcpiGbl_ExternalList)
-                {
-                    AcpiOsPrintf ("    External (%s",
-                        AcpiGbl_ExternalList->Path);
-
-                    /* TBD: should be a lookup table */
-
-                    switch (AcpiGbl_ExternalList->Type)
-                    {
-                    case ACPI_TYPE_DEVICE:
-                        AcpiOsPrintf (", DeviceObj");
-                        break;
-
-                    case ACPI_TYPE_METHOD:
-                        AcpiOsPrintf (", MethodObj");
-                        break;
-
-                    case ACPI_TYPE_INTEGER:
-                        AcpiOsPrintf (", IntObj");
-                        break;
-
-                    default:
-                        break;
-                    }
-
-                    if (AcpiGbl_ExternalList->Type == ACPI_TYPE_METHOD)
-                    {
-                        AcpiOsPrintf (")    // %d Arguments\n", AcpiGbl_ExternalList->Value);
-                    }
-                    else
-                    {
-                        AcpiOsPrintf (")\n");
-                    }
-
-                    NextExternal = AcpiGbl_ExternalList->Next;
-                    ACPI_FREE (AcpiGbl_ExternalList->Path);
-                    ACPI_FREE (AcpiGbl_ExternalList);
-                    AcpiGbl_ExternalList = NextExternal;
-                }
-                AcpiOsPrintf ("\n");
-            }
-
+            AcpiDmEmitExternals ();
             return (AE_OK);
         }
     }

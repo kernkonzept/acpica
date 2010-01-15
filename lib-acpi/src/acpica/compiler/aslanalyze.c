@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -174,6 +174,10 @@ AnIsInternalMethod (
 
 static UINT32
 AnGetInternalMethodReturnType (
+    ACPI_PARSE_OBJECT       *Op);
+
+BOOLEAN
+AnIsResultUsed (
     ACPI_PARSE_OBJECT       *Op);
 
 
@@ -1724,6 +1728,14 @@ AnOperandTypecheckWalkEnd (
     RuntimeArgTypes = OpInfo->RuntimeArgs;
     OpcodeClass     = OpInfo->Class;
 
+#ifdef ASL_ERROR_NAMED_OBJECT_IN_WHILE
+    /*
+     * Update 11/2008: In practice, we can't perform this check. A simple
+     * analysis is not sufficient. Also, it can cause errors when compiling
+     * disassembled code because of the way Switch operators are implemented
+     * (a While(One) loop with a named temp variable created within.)
+     */
+
     /*
      * If we are creating a named object, check if we are within a while loop
      * by checking if the parent is a WHILE op. This is a simple analysis, but
@@ -1739,6 +1751,7 @@ AnOperandTypecheckWalkEnd (
             AslError (ASL_ERROR, ASL_MSG_NAMED_OBJECT_IN_WHILE, Op, NULL);
         }
     }
+#endif
 
     /*
      * Special case for control opcodes IF/RETURN/WHILE since they

@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -189,7 +189,7 @@ AcpiDsResultPop (
     /* Return object of the top element and clean that top element result stack */
 
     WalkState->ResultCount--;
-    Index = WalkState->ResultCount % ACPI_RESULTS_FRAME_OBJ_NUM;
+    Index = (UINT32) WalkState->ResultCount % ACPI_RESULTS_FRAME_OBJ_NUM;
 
     *Object = State->Results.ObjDesc [Index];
     if (!*Object)
@@ -284,7 +284,7 @@ AcpiDsResultPush (
 
     /* Assign the address of object to the top free element of result stack */
 
-    Index = WalkState->ResultCount % ACPI_RESULTS_FRAME_OBJ_NUM;
+    Index = (UINT32) WalkState->ResultCount % ACPI_RESULTS_FRAME_OBJ_NUM;
     State->Results.ObjDesc [Index] = Object;
     WalkState->ResultCount++;
 

@@ -14,6 +14,7 @@ SRCS=	aslcompilerparse.c aslcompilerlex.c aslanalyze.c aslcodegen.c \
 	../utilities/utdelete.c \
 	../utilities/utglobal.c \
 	../utilities/utinit.c \
+	../utilities/utlock.c \
 	../utilities/utobject.c \
 	../utilities/utmisc.c \
 	../utilities/utmath.c \
@@ -70,6 +71,7 @@ SRCS=	aslcompilerparse.c aslcompilerlex.c aslanalyze.c aslcodegen.c \
 	../common/adfile.c \
 	../common/adisasm.c \
 	../common/adwalk.c \
+	../common/dmextern.c \
 	../common/dmrestag.c \
 	../common/dmtable.c \
 	../common/dmtbinfo.c \
@@ -104,6 +106,8 @@ YFLAGS+= -y -pAslCompiler
 #.else
 #CFLAGS+= -D_USE_BERKELEY_YACC
 #.endif
+
+LDLIBS = -lpthread -lrt
 
 aslmain : $(patsubst %.c,%.o, $(SRCS))
 	$(CC) $(LDFLAGS) $(patsubst %.c,%.o, $(SRCS)) \

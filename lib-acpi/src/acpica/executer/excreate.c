@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -614,7 +614,7 @@ AcpiExCreateMethod (
          * ACPI 2.0: SyncLevel = SyncLevel in method declaration
          */
         ObjDesc->Method.SyncLevel = (UINT8)
-            ((MethodFlags & AML_METHOD_SYNCH_LEVEL) >> 4);
+            ((MethodFlags & AML_METHOD_SYNC_LEVEL) >> 4);
     }
 
     /* Attach the new object to the method Node */

@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -302,7 +302,7 @@ AcpiUtCreateThreadState (
     if (!State->Thread.ThreadId)
     {
         ACPI_ERROR ((AE_INFO, "Invalid zero ID from AcpiOsGetThreadId"));
-        State->Thread.ThreadId = 1;
+        State->Thread.ThreadId = (ACPI_THREAD_ID) 1;
     }
 
     return_PTR ((ACPI_THREAD_STATE *) State);

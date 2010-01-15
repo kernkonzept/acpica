@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Module Name: 16bit.h - 16-bit support
+ * Module Name: oswintbl - Windows OSL for obtaining ACPI tables
  *
  *****************************************************************************/
 
@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -114,52 +114,163 @@
  *****************************************************************************/
 
 
-#define GET_SEGMENT(ptr)            ((UINT16)(_segment)(ptr))
-#define GET_OFFSET(ptr)             ((UINT16)(UINT32) (ptr))
-#define GET_PHYSICAL_ADDRESS(ptr)   (((((UINT32)GET_SEGMENT(ptr)) << 4)) + GET_OFFSET(ptr))
-#define PTR_OVL_BUILD_PTR(p,b,o)    {p.ovl.base=b;p.ovl.offset=o;}
+#ifdef WIN32
+#pragma warning(disable:4115)   /* warning C4115: (caused by rpcasync.h) */
 
-typedef union ptr_ovl
+#include <windows.h>
+#include <winbase.h>
+
+#elif WIN64
+#include <windowsx.h>
+#endif
+
+#include "acpi.h"
+#include "accommon.h"
+
+#define _COMPONENT          ACPI_OS_SERVICES
+        ACPI_MODULE_NAME    ("oswintbl")
+
+
+static char             KeyBuffer[64];
+
+
+/******************************************************************************
+ *
+ * FUNCTION:    OsGetTable
+ *
+ * PARAMETERS:  Signature       - ACPI Signature for desired table. must be
+ *                                  a null terminated string.
+ *
+ * RETURN:      Pointer to the table. NULL if failure.
+ *
+ * DESCRIPTION: Get an ACPI table from the Windows registry.
+ *
+ *****************************************************************************/
+
+ACPI_TABLE_HEADER *
+OsGetTable (
+    char                *Signature)
 {
-    void                *ptr;
-    UINT32              dword;
-    struct
+    HKEY                Handle = NULL;
+    ULONG               i;
+    LONG                Status;
+    ULONG               Type;
+    ULONG               NameSize;
+    ULONG               DataSize;
+    HKEY                SubKey;
+    ACPI_TABLE_HEADER   *ReturnTable;
+
+
+    /* Get a handle to the table key */
+
+    while (1)
     {
-        UINT16              offset;
-        UINT16              base;
-    } ovl;
+        ACPI_STRCPY (KeyBuffer, "HARDWARE\\ACPI\\");
+        ACPI_STRCAT (KeyBuffer, Signature);
 
-} PTR_OVL;
+        Status = RegOpenKeyEx (HKEY_LOCAL_MACHINE, KeyBuffer,
+                    0L, KEY_ALL_ACCESS, &Handle);
 
+        if (Status != ERROR_SUCCESS)
+        {
+            /*
+             * Somewhere along the way, MS changed the registry entry for
+             * the FADT from
+             * HARDWARE/ACPI/FACP  to
+             * HARDWARE/ACPI/FADT.
+             *
+             * This code allows for both.
+             */
+            if (ACPI_COMPARE_NAME (Signature, "FACP"))
+            {
+                Signature = "FADT";
+            }
+            else
+            {
+                AcpiOsPrintf ("Could not find %s in registry at %s\n",
+                    Signature, KeyBuffer);
+                return (NULL);
+            }
+        }
+        else
+        {
+            break;
+        }
+    }
 
-int ACPI_INTERNAL_VAR_XFACE
-FlatMove (
-    UINT32              Dest,
-    UINT32              Src,
-    UINT16              Size);
+    /* Actual data for table is down a couple levels */
 
-int ACPI_INTERNAL_VAR_XFACE
-FlatMove32 (
-    UINT32              Dest,
-    UINT32              Src,
-    UINT16              Size);
+    for (i = 0; ;)
+    {
+        Status = RegEnumKey (Handle, i, KeyBuffer, sizeof (KeyBuffer));
+        i += 1;
+        if (Status == ERROR_NO_MORE_ITEMS)
+        {
+            break;
+        }
 
-ACPI_NATIVE_INT
-AfWriteBuffer (
-    char                *Filename,
-    char                *Buffer,
-    UINT32              Length);
+        Status = RegOpenKey (Handle, KeyBuffer, &SubKey);
+        if (Status != ERROR_SUCCESS)
+        {
+            AcpiOsPrintf ("Could not open %s entry\n", Signature);
+            return (NULL);
+        }
 
-char *
-AfGenerateFilename (char *TableId);
+        RegCloseKey (Handle);
+        Handle = SubKey;
+        i = 0;
+    }
 
+    /* Find the (binary) table entry */
 
-ACPI_STATUS
-AfFindTable(
-    char                *TableName,
-    UINT8               **TablePtr,
-    UINT32              *TableLength);
+    for (i = 0; ;)
+    {
+        NameSize = sizeof (KeyBuffer);
+        Status = RegEnumValue (Handle, i, KeyBuffer, &NameSize,
+                    NULL, &Type, NULL, 0);
+        if (Status != ERROR_SUCCESS)
+        {
+            AcpiOsPrintf ("Could not get %s registry entry\n", Signature);
+            return (NULL);
+        }
 
-void
-AfDumpTables (void);
+        if (Type == REG_BINARY)
+        {
+            break;
+        }
+        i += 1;
+    }
+
+    /* Get the size of the table */
+
+    Status = RegQueryValueEx (Handle, KeyBuffer, NULL, NULL, NULL, &DataSize);
+    if (Status != ERROR_SUCCESS)
+    {
+        AcpiOsPrintf ("Could not read the %s table size\n", Signature);
+        return (NULL);
+    }
+
+    /* Allocate a new buffer for the table */
+
+    ReturnTable = AcpiOsAllocate (DataSize);
+    if (!ReturnTable)
+    {
+        goto Cleanup;
+    }
+
+    /* Get the actual table from the registry */
+
+    Status = RegQueryValueEx (Handle, KeyBuffer, NULL, NULL,
+                (UCHAR *) ReturnTable, &DataSize);
+    if (Status != ERROR_SUCCESS)
+    {
+        AcpiOsPrintf ("Could not read %s data\n", Signature);
+        AcpiOsFree (ReturnTable);
+        return (NULL);
+    }
+
+Cleanup:
+    RegCloseKey (Handle);
+    return (ReturnTable);
+}
 

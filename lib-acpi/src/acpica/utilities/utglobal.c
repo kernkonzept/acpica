@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -120,8 +120,6 @@
 #include "accommon.h"
 #include "acnamesp.h"
 
-ACPI_EXPORT_SYMBOL (AcpiGbl_FADT)
-
 #define _COMPONENT          ACPI_UTILITIES
         ACPI_MODULE_NAME    ("utglobal")
 
@@ -174,7 +172,16 @@ const char                  *AcpiGbl_SleepStateNames[ACPI_S_STATE_COUNT] =
     "\\_S5_"
 };
 
-const char                  *AcpiGbl_HighestDstateNames[4] =
+const char                  *AcpiGbl_LowestDstateNames[ACPI_NUM_SxW_METHODS] =
+{
+    "_S0W",
+    "_S1W",
+    "_S2W",
+    "_S3W",
+    "_S4W"
+};
+
+const char                  *AcpiGbl_HighestDstateNames[ACPI_NUM_SxD_METHODS] =
 {
     "_S1D",
     "_S2D",
@@ -361,8 +368,7 @@ ACPI_BIT_REGISTER_INFO      AcpiGbl_BitRegisterInfo[ACPI_NUM_BITREG] =
     /* ACPI_BITREG_SCI_ENABLE           */   {ACPI_REGISTER_PM1_CONTROL,  ACPI_BITPOSITION_SCI_ENABLE,            ACPI_BITMASK_SCI_ENABLE},
     /* ACPI_BITREG_BUS_MASTER_RLD       */   {ACPI_REGISTER_PM1_CONTROL,  ACPI_BITPOSITION_BUS_MASTER_RLD,        ACPI_BITMASK_BUS_MASTER_RLD},
     /* ACPI_BITREG_GLOBAL_LOCK_RELEASE  */   {ACPI_REGISTER_PM1_CONTROL,  ACPI_BITPOSITION_GLOBAL_LOCK_RELEASE,   ACPI_BITMASK_GLOBAL_LOCK_RELEASE},
-    /* ACPI_BITREG_SLEEP_TYPE_A         */   {ACPI_REGISTER_PM1_CONTROL,  ACPI_BITPOSITION_SLEEP_TYPE_X,          ACPI_BITMASK_SLEEP_TYPE_X},
-    /* ACPI_BITREG_SLEEP_TYPE_B         */   {ACPI_REGISTER_PM1_CONTROL,  ACPI_BITPOSITION_SLEEP_TYPE_X,          ACPI_BITMASK_SLEEP_TYPE_X},
+    /* ACPI_BITREG_SLEEP_TYPE           */   {ACPI_REGISTER_PM1_CONTROL,  ACPI_BITPOSITION_SLEEP_TYPE,            ACPI_BITMASK_SLEEP_TYPE},
     /* ACPI_BITREG_SLEEP_ENABLE         */   {ACPI_REGISTER_PM1_CONTROL,  ACPI_BITPOSITION_SLEEP_ENABLE,          ACPI_BITMASK_SLEEP_ENABLE},
 
     /* ACPI_BITREG_ARB_DIS              */   {ACPI_REGISTER_PM2_CONTROL,  ACPI_BITPOSITION_ARB_DISABLE,           ACPI_BITMASK_ARB_DISABLE}
@@ -401,6 +407,7 @@ const char        *AcpiGbl_RegionTypes[ACPI_NUM_PREDEFINED_REGIONS] =
     "SMBus",
     "SystemCMOS",
     "PCIBARTarget",
+    "IPMI",
     "DataTable"
 };
 
@@ -545,7 +552,7 @@ AcpiUtGetObjectTypeName (
         return ("[NULL Object Descriptor]");
     }
 
-    return (AcpiUtGetTypeName (ACPI_GET_OBJECT_TYPE (ObjDesc)));
+    return (AcpiUtGetTypeName (ObjDesc->Common.Type));
 }
 
 
@@ -868,7 +875,10 @@ AcpiUtInitGlobals (
     {
         AcpiGbl_OwnerIdMask[i]              = 0;
     }
-    AcpiGbl_OwnerIdMask[ACPI_NUM_OWNERID_MASKS - 1] = 0x80000000; /* Last ID is never valid */
+
+    /* Last OwnerID is never valid */
+
+    AcpiGbl_OwnerIdMask[ACPI_NUM_OWNERID_MASKS - 1] = 0x80000000;
 
     /* Event counters */
 
@@ -886,6 +896,7 @@ AcpiUtInitGlobals (
     AcpiGbl_GpeXruptListHead            = NULL;
     AcpiGbl_GpeFadtBlocks[0]            = NULL;
     AcpiGbl_GpeFadtBlocks[1]            = NULL;
+    AcpiCurrentGpeCount                 = 0;
 
     /* Global handlers */
 
@@ -918,6 +929,7 @@ AcpiUtInitGlobals (
     AcpiGbl_TraceDbgLayer               = 0;
     AcpiGbl_DebuggerConfiguration       = DEBUGGER_THREADING;
     AcpiGbl_DbOutputFlags               = ACPI_DB_CONSOLE_OUTPUT;
+    AcpiGbl_OsiData                     = 0;
 
     /* Hardware oriented */
 
@@ -926,6 +938,7 @@ AcpiUtInitGlobals (
 
     /* Namespace */
 
+    AcpiGbl_ModuleCodeList              = NULL;
     AcpiGbl_RootNode                    = NULL;
     AcpiGbl_RootNodeStruct.Name.Integer = ACPI_ROOT_NAME;
     AcpiGbl_RootNodeStruct.DescriptorType = ACPI_DESC_TYPE_NAMED;
@@ -935,6 +948,10 @@ AcpiUtInitGlobals (
     AcpiGbl_RootNodeStruct.Object       = NULL;
     AcpiGbl_RootNodeStruct.Flags        = ANOBJ_END_OF_PEER_LIST;
 
+
+#ifdef ACPI_DISASSEMBLER
+    AcpiGbl_ExternalList                = NULL;
+#endif
 
 #ifdef ACPI_DEBUG_OUTPUT
     AcpiGbl_LowestStackPointer          = ACPI_CAST_PTR (ACPI_SIZE, ACPI_SIZE_MAX);
@@ -949,8 +966,10 @@ AcpiUtInitGlobals (
 
 /* Public globals */
 
+ACPI_EXPORT_SYMBOL (AcpiGbl_FADT)
 ACPI_EXPORT_SYMBOL (AcpiDbgLevel)
 ACPI_EXPORT_SYMBOL (AcpiDbgLayer)
 ACPI_EXPORT_SYMBOL (AcpiGpeCount)
+ACPI_EXPORT_SYMBOL (AcpiCurrentGpeCount)
 
 

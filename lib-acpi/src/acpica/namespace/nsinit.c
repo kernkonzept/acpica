@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -185,7 +185,7 @@ AcpiNsInitializeObjects (
     /* Walk entire namespace from the supplied root */
 
     Status = AcpiWalkNamespace (ACPI_TYPE_ANY, ACPI_ROOT_OBJECT,
-                                ACPI_UINT32_MAX, AcpiNsInitOneObject,
+                                ACPI_UINT32_MAX, AcpiNsInitOneObject, NULL,
                                 &Info, NULL);
     if (ACPI_FAILURE (Status))
     {
@@ -193,7 +193,8 @@ AcpiNsInitializeObjects (
     }
 
     ACPI_DEBUG_PRINT_RAW ((ACPI_DB_INIT,
-        "\nInitialized %hd/%hd Regions %hd/%hd Fields %hd/%hd Buffers %hd/%hd Packages (%hd nodes)\n",
+        "\nInitialized %hd/%hd Regions %hd/%hd Fields %hd/%hd "
+        "Buffers %hd/%hd Packages (%hd nodes)\n",
         Info.OpRegionInit,  Info.OpRegionCount,
         Info.FieldInit,     Info.FieldCount,
         Info.BufferInit,    Info.BufferCount,
@@ -242,12 +243,13 @@ AcpiNsInitializeDevices (
     Info.Num_INI = 0;
 
     ACPI_DEBUG_PRINT_RAW ((ACPI_DB_INIT,
-        "Initializing Device/Processor/Thermal objects by executing _INI methods:"));
+        "Initializing Device/Processor/Thermal objects "
+        "by executing _INI methods:"));
 
     /* Tree analysis: find all subtrees that contain _INI methods */
 
     Status = AcpiNsWalkNamespace (ACPI_TYPE_ANY, ACPI_ROOT_OBJECT,
-                ACPI_UINT32_MAX, FALSE, AcpiNsFindIniMethods, &Info, NULL);
+                ACPI_UINT32_MAX, FALSE, AcpiNsFindIniMethods, NULL, &Info, NULL);
     if (ACPI_FAILURE (Status))
     {
         goto ErrorExit;
@@ -262,10 +264,26 @@ AcpiNsInitializeDevices (
         goto ErrorExit;
     }
 
+    /*
+     * Execute the "global" _INI method that may appear at the root. This
+     * support is provided for Windows compatibility (Vista+) and is not
+     * part of the ACPI specification.
+     */
+    Info.EvaluateInfo->PrefixNode = AcpiGbl_RootNode;
+    Info.EvaluateInfo->Pathname = METHOD_NAME__INI;
+    Info.EvaluateInfo->Parameters = NULL;
+    Info.EvaluateInfo->Flags = ACPI_IGNORE_RETURN_VALUE;
+
+    Status = AcpiNsEvaluate (Info.EvaluateInfo);
+    if (ACPI_SUCCESS (Status))
+    {
+        Info.Num_INI++;
+    }
+
     /* Walk namespace to execute all _INIs on present devices */
 
     Status = AcpiNsWalkNamespace (ACPI_TYPE_ANY, ACPI_ROOT_OBJECT,
-                ACPI_UINT32_MAX, FALSE, AcpiNsInitOneDevice, &Info, NULL);
+                ACPI_UINT32_MAX, FALSE, AcpiNsInitOneDevice, NULL, &Info, NULL);
 
     ACPI_FREE (Info.EvaluateInfo);
     if (ACPI_FAILURE (Status))
@@ -274,7 +292,8 @@ AcpiNsInitializeDevices (
     }
 
     ACPI_DEBUG_PRINT_RAW ((ACPI_DB_INIT,
-        "\nExecuted %hd _INI methods requiring %hd _STA executions (examined %hd objects)\n",
+        "\nExecuted %hd _INI methods requiring %hd _STA executions "
+        "(examined %hd objects)\n",
         Info.Num_INI, Info.Num_STA, Info.DeviceCount));
 
     return_ACPI_STATUS (Status);
@@ -364,17 +383,15 @@ AcpiNsInitOneObject (
         return (AE_OK);
     }
 
-    /*
-     * If the object is already initialized, nothing else to do
-     */
+    /* If the object is already initialized, nothing else to do */
+
     if (ObjDesc->Common.Flags & AOPOBJ_DATA_VALID)
     {
         return (AE_OK);
     }
 
-    /*
-     * Must lock the interpreter before executing AML code
-     */
+    /* Must lock the interpreter before executing AML code */
+
     AcpiExEnterInterpreter ();
 
     /*

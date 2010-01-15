@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2008, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2009, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -114,20 +114,13 @@
  *****************************************************************************/
 
 
-/*
- * These interfaces are required in order to link to the ACPI subsystem
- * parser.  They are called during the execution of the parser, and all
- * map directly to Clibrary calls.
- */
-
 #ifdef WIN32
 #pragma warning(disable:4115)   /* warning C4115: named type definition in parentheses (caused by rpcasync.h> */
 
 #include <windows.h>
 #include <winbase.h>
-#endif
 
-#ifdef WIN64
+#elif WIN64
 #include <windowsx.h>
 #endif
 
@@ -139,37 +132,57 @@
 
 #include "acpi.h"
 #include "accommon.h"
-#include "acdebug.h"
 
 #define _COMPONENT          ACPI_OS_SERVICES
         ACPI_MODULE_NAME    ("oswinxf")
 
 
-#define NUM_SEMAPHORES      128
+/* Semaphore information structure */
 
-typedef struct semaphore_entry
+typedef struct acpi_os_semaphore_info
 {
     UINT16                  MaxUnits;
     UINT16                  CurrentUnits;
     void                    *OsHandle;
-} SEMAPHORE_ENTRY;
+
+} ACPI_OS_SEMAPHORE_INFO;
+
+/* Need enough semaphores to run the large aslts suite */
+
+#define ACPI_OS_MAX_SEMAPHORES  256
+
+ACPI_OS_SEMAPHORE_INFO          AcpiGbl_Semaphores[ACPI_OS_MAX_SEMAPHORES];
 
 
-SEMAPHORE_ENTRY             AcpiGbl_Semaphores[NUM_SEMAPHORES];
-extern FILE                 *AcpiGbl_DebugFile;
+/* Upcalls to AcpiExec */
 
 ACPI_PHYSICAL_ADDRESS
 AeLocalGetRootPointer (
     void);
 
+void
+AeTableOverride (
+    ACPI_TABLE_HEADER       *ExistingTable,
+    ACPI_TABLE_HEADER       **NewTable);
+
+ACPI_TABLE_HEADER *
+OsGetTable (
+    char                    *Signature);
+
+
+extern FILE                 *AcpiGbl_DebugFile;
+extern BOOLEAN              AcpiGbl_DebugTimeout;
+
 FILE                        *AcpiGbl_OutputFile;
 UINT64                      TimerFrequency;
-
 char                        TableName[ACPI_NAME_SIZE + 1];
+
+#define ACPI_OS_DEBUG_TIMEOUT   30000 /* 30 seconds */
+
 
 /******************************************************************************
  *
- * FUNCTION:    OsTerminate
+ * FUNCTION:    AcpiOsTerminate
  *
  * PARAMETERS:  None
  *
@@ -186,153 +199,9 @@ AcpiOsTerminate (void)
 }
 
 
-#if (!defined ACPI_EXEC_APP && !defined ACPI_BIN_APP)
-/* Used by both iASL and AcpiDump applications */
-
-CHAR                s[500];
-
 /******************************************************************************
  *
- * FUNCTION:    OsGetTable
- *
- * PARAMETERS:  None
- *
- * RETURN:      Pointer to the table.  NULL if failure
- *
- * DESCRIPTION: Get an ACPI table from the Windows registry.
- *
- *****************************************************************************/
-
-ACPI_TABLE_HEADER *
-OsGetTable (
-    char                *TableName)
-{
-    HKEY                Handle = NULL;
-    ULONG               i;
-    LONG                Status;
-    ULONG               Type;
-    ULONG               NameSize;
-    ULONG               DataSize;
-    HKEY                SubKey;
-    ACPI_TABLE_HEADER   *Buffer;
-    char                *Signature = TableName;
-
-
-    /* Get a handle to the DSDT key */
-
-    while (1)
-    {
-        ACPI_STRCPY (s, "HARDWARE\\ACPI\\");
-        ACPI_STRCAT (s, Signature);
-
-        Status = RegOpenKeyEx (HKEY_LOCAL_MACHINE, s,
-                    0L, KEY_ALL_ACCESS, &Handle);
-
-        if (Status != ERROR_SUCCESS)
-        {
-            /*
-             * Somewhere along the way, MS changed the registry entry for
-             * the FADT from
-             * HARDWARE/ACPI/FACP  to
-             * HARDWARE/ACPI/FADT.
-             *
-             * This code allows for both.
-             */
-            if (ACPI_COMPARE_NAME (Signature, "FACP"))
-            {
-                Signature = "FADT";
-            }
-            else
-            {
-                AcpiOsPrintf ("Could not find %s in registry at %s\n", TableName, s);
-                return (NULL);
-            }
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    /* Actual table is down a couple of levels */
-
-    for (i = 0; ;)
-    {
-        Status = RegEnumKey (Handle, i, s, sizeof(s));
-        i += 1;
-        if (Status == ERROR_NO_MORE_ITEMS)
-        {
-            break;
-        }
-
-        Status = RegOpenKey (Handle, s, &SubKey);
-        if (Status != ERROR_SUCCESS)
-        {
-            AcpiOsPrintf ("Could not open %s entry\n", TableName);
-            return (NULL);
-        }
-
-        RegCloseKey (Handle);
-        Handle = SubKey;
-        i = 0;
-    }
-
-    /* Find the table entry */
-
-    for (i = 0; ;)
-    {
-        NameSize = sizeof (s);
-        Status = RegEnumValue (Handle, i, s, &NameSize,
-                    NULL, &Type, NULL, 0 );
-        if (Status != ERROR_SUCCESS)
-        {
-            AcpiOsPrintf ("Could not get %s registry entry\n", TableName);
-            return (NULL);
-        }
-
-        if (Type == REG_BINARY)
-        {
-            break;
-        }
-        i += 1;
-    }
-
-    /* Get the size of the table */
-
-    Status = RegQueryValueEx (Handle, s, NULL, NULL, NULL, &DataSize);
-    if (Status != ERROR_SUCCESS)
-    {
-        AcpiOsPrintf ("Could not read the %s table size\n", TableName);
-        return (NULL);
-    }
-
-    /* Allocate a new buffer for the table */
-
-    Buffer = AcpiOsAllocate (DataSize);
-    if (!Buffer)
-    {
-        goto Cleanup;
-    }
-
-    /* Get the actual table from the registry */
-
-    Status = RegQueryValueEx (Handle, s, NULL, NULL, (UCHAR *) Buffer, &DataSize);
-    if (Status != ERROR_SUCCESS)
-    {
-        AcpiOsPrintf ("Could not read %s data\n", TableName);
-        return (NULL);
-    }
-
-Cleanup:
-    RegCloseKey (Handle);
-    return (Buffer);
-}
-
-#endif
-
-/******************************************************************************
- *
- * FUNCTION:    AcpiOsInitialize, AcpiOsTerminate
+ * FUNCTION:    AcpiOsInitialize
  *
  * PARAMETERS:  None
  *
@@ -345,16 +214,16 @@ Cleanup:
 ACPI_STATUS
 AcpiOsInitialize (void)
 {
-    UINT32                  i;
     LARGE_INTEGER           LocalTimerFrequency;
 
 
     AcpiGbl_OutputFile = stdout;
 
-    for (i = 0; i < NUM_SEMAPHORES; i++)
-    {
-        AcpiGbl_Semaphores[i].OsHandle = NULL;
-    }
+    /* Clear the semaphore info array */
+
+    memset (AcpiGbl_Semaphores, 0x00, sizeof (AcpiGbl_Semaphores));
+
+    /* Get the timer frequency for use in AcpiOsGetTimer */
 
     TimerFrequency = 0;
     if (QueryPerformanceFrequency (&LocalTimerFrequency))
@@ -447,19 +316,17 @@ AcpiOsTableOverride (
     *NewTable = NULL;
 
 
-#ifndef ACPI_BIN_APP
 #ifdef ACPI_EXEC_APP
 
-    /* This code exercises the table override mechanism in the core */
+    /* Call back up to AcpiExec */
 
-    if (ACPI_COMPARE_NAME (ExistingTable->Signature, ACPI_SIG_DSDT))
-    {
-        /* override DSDT with itself */
+    AeTableOverride (ExistingTable, NewTable);
+#endif
 
-        *NewTable = AcpiGbl_DbTablePtr;
-    }
 
-#else
+#ifdef ACPI_ASL_COMPILER
+
+    /* Attempt to get the table from the registry */
 
     /* Construct a null-terminated string from table signature */
 
@@ -469,14 +336,13 @@ AcpiOsTableOverride (
     *NewTable = OsGetTable (TableName);
     if (*NewTable)
     {
-        AcpiOsPrintf ("%s obtained from registry, %d bytes\n",
+        AcpiOsPrintf ("Table %s obtained from registry, %d bytes\n",
             TableName, (*NewTable)->Length);
     }
     else
     {
-        AcpiOsPrintf ("Could not read %s from registry\n", TableName);
+        AcpiOsPrintf ("Could not read table %s from registry\n", TableName);
     }
-#endif
 #endif
 
     return (AE_OK);
@@ -501,8 +367,6 @@ AcpiOsGetTimer (
 {
     LARGE_INTEGER           Timer;
 
-
-//        return ((UINT64) GetTickCount() * 10000);
 
     /* Attempt to use hi-granularity timer first */
 
@@ -712,6 +576,7 @@ AcpiOsGetLine (
     return (i);
 }
 
+
 /******************************************************************************
  *
  * FUNCTION:    AcpiOsMapMemory
@@ -852,15 +717,17 @@ AcpiOsCreateSemaphore (
 
     /* Find an empty slot */
 
-    for (i = 0; i < NUM_SEMAPHORES; i++)
+    for (i = 0; i < ACPI_OS_MAX_SEMAPHORES; i++)
     {
         if (!AcpiGbl_Semaphores[i].OsHandle)
         {
             break;
         }
     }
-    if (i >= NUM_SEMAPHORES)
+    if (i >= ACPI_OS_MAX_SEMAPHORES)
     {
+        ACPI_EXCEPTION ((AE_INFO, AE_LIMIT,
+            "Reached max semaphores (%d), could not create", ACPI_OS_MAX_SEMAPHORES));
         return AE_LIMIT;
     }
 
@@ -886,6 +753,7 @@ AcpiOsCreateSemaphore (
     return AE_OK;
 }
 
+
 /******************************************************************************
  *
  * FUNCTION:    AcpiOsDeleteSemaphore
@@ -905,7 +773,7 @@ AcpiOsDeleteSemaphore (
     UINT32              Index = (UINT32) Handle;
 
 
-    if ((Index >= NUM_SEMAPHORES) ||
+    if ((Index >= ACPI_OS_MAX_SEMAPHORES) ||
         !AcpiGbl_Semaphores[Index].OsHandle)
     {
         return AE_BAD_PARAMETER;
@@ -951,7 +819,7 @@ AcpiOsWaitSemaphore (
     ACPI_FUNCTION_ENTRY ();
 
 
-    if ((Index >= NUM_SEMAPHORES) ||
+    if ((Index >= ACPI_OS_MAX_SEMAPHORES) ||
         !AcpiGbl_Semaphores[Index].OsHandle)
     {
         return AE_BAD_PARAMETER;
@@ -963,17 +831,15 @@ AcpiOsWaitSemaphore (
         return AE_NOT_IMPLEMENTED;
     }
 
-
-/* TBD: Make this a command line option so that we can catch
- * synchronization deadlocks
- *
-    if (Timeout == INFINITE)
-        Timeout = 400000;
-*/
-
     if (Timeout == ACPI_WAIT_FOREVER)
     {
         OsTimeout = INFINITE;
+        if (AcpiGbl_DebugTimeout)
+        {
+            /* The debug timeout will prevent hang conditions */
+
+            OsTimeout = ACPI_OS_DEBUG_TIMEOUT;
+        }
     }
     else
     {
@@ -985,10 +851,12 @@ AcpiOsWaitSemaphore (
     WaitStatus = WaitForSingleObject (AcpiGbl_Semaphores[Index].OsHandle, OsTimeout);
     if (WaitStatus == WAIT_TIMEOUT)
     {
-/* Make optional -- wait of 0 is used to detect if unit is available
-        ACPI_ERROR ((AE_INFO, "Timeout on semaphore %d",
-            Handle));
-*/
+        if (AcpiGbl_DebugTimeout)
+        {
+            ACPI_EXCEPTION ((AE_INFO, AE_TIME,
+                "Debug timeout on semaphore 0x%04X (%ums)\n",
+                Index, ACPI_OS_DEBUG_TIMEOUT));
+        }
         return AE_TIME;
     }
 
@@ -1033,7 +901,7 @@ AcpiOsSignalSemaphore (
     ACPI_FUNCTION_ENTRY ();
 
 
-    if (Index >= NUM_SEMAPHORES)
+    if (Index >= ACPI_OS_MAX_SEMAPHORES)
     {
         printf ("SignalSemaphore: Index/Handle out of range: %2.2X\n", Index);
         return AE_BAD_PARAMETER;
@@ -1312,33 +1180,6 @@ AcpiOsValidateInterface (
 
 /******************************************************************************
  *
- * FUNCTION:    AcpiOsValidateAddress
- *
- * PARAMETERS:  SpaceId             - ACPI space ID
- *              Address             - Physical address
- *              Length              - Address length
- *
- * RETURN:      AE_OK if Address/Length is valid for the SpaceId. Otherwise,
- *              should return AE_AML_ILLEGAL_ADDRESS.
- *
- * DESCRIPTION: Validate a system address via the host OS. Used to validate
- *              the addresses accessed by AML operation regions.
- *
- *****************************************************************************/
-
-ACPI_STATUS
-AcpiOsValidateAddress (
-    UINT8                   SpaceId,
-    ACPI_PHYSICAL_ADDRESS   Address,
-    ACPI_SIZE               Length)
-{
-
-    return (AE_OK);
-}
-
-
-/******************************************************************************
- *
  * FUNCTION:    AcpiOsReadPciConfiguration
  *
  * PARAMETERS:  PciId               Seg/Bus/Dev
@@ -1543,7 +1384,7 @@ AcpiOsWriteMemory (
  *
  * RETURN:      Status
  *
- * DESCRIPTION: Miscellaneous functions
+ * DESCRIPTION: Miscellaneous functions. Example implementation only.
  *
  *****************************************************************************/
 
@@ -1559,20 +1400,12 @@ AcpiOsSignal (
         break;
 
     case ACPI_SIGNAL_BREAKPOINT:
+        break;
 
-        if (Info)
-        {
-            AcpiOsPrintf ("AcpiOsBreakpoint: %s ****\n", Info);
-        }
-        else
-        {
-            AcpiOsPrintf ("At AcpiOsBreakpoint ****\n");
-        }
-
+    default:
         break;
     }
 
     return (AE_OK);
 }
-
 
