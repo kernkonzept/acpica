@@ -47,11 +47,13 @@ AcpiOsWaitSemaphore (
 	uint32_t                        units,
 	uint16_t                        timeout)
 {
+#if 0
   if(units!=1 || timeout != 0xffff)
     printf("%s:%d:%s: ERROR handle=%p, (%d,%d)\n", __FILE__, __LINE__, __func__,
 	   handle, units, (int)timeout);
   // enter the critical section
 //  pthread_mutex_lock((pthread_mutex_t*)handle);
+#endif
   return AE_OK;
 }
 
@@ -61,11 +63,13 @@ AcpiOsSignalSemaphore (
 	ACPI_SEMAPHORE                  handle,
 	uint32_t                        units)
 {
+#if 0
   if(units!=1)
     printf("%s:%d:%s: ERROR: handle=%p, units=%d", __FILE__, __LINE__, __func__,
 	   handle, units);
   // leave the critical section
 //  pthread_mutex_unlock((pthread_mutex_t*)handle);
+#endif
   return AE_OK;
 }
 
