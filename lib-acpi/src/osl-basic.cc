@@ -49,7 +49,7 @@ AcpiOsFree (void * memory)
   return;
 }
 
-#ifdef HAVE_NOT_IMPLEMENTED_AcpiOsInstallInterruptHandler
+#ifndef HAVE_NOT_IMPLEMENTED_AcpiOsInstallInterruptHandler
 ACPI_STATUS
 AcpiOsInstallInterruptHandler (
 	uint32_t                        interrupt_number,
