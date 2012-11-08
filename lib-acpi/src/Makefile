@@ -73,6 +73,7 @@ ACPICA_SRC_C		= \
 	hardware/hwpci.c \
 	hardware/hwregs.c \
 	hardware/hwsleep.c \
+	hardware/hwesleep.c \
 	hardware/hwvalid.c \
 	hardware/hwxface.c \
 	namespace/nsaccess.c \
