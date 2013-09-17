@@ -329,10 +329,10 @@ AcpiOsPhysicalTableOverride (
     ACPI_PHYSICAL_ADDRESS   *NewAddress,
     UINT32                  *NewTableLength)
 {
-  printf("%s:%d:%s(%p, %p, %p): UNINPLEMENTED\n",
-         __FILE__, __LINE__, __func__, ExistingTable, NewAddress, NewTableLength);
-
-    return (AE_SUPPORT);
+  (void)ExistingTable;
+  (void)NewTableLength;
+  *NewAddress = 0;
+  return (AE_SUPPORT);
 }
 
 /******************************************************************************
