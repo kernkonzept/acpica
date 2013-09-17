@@ -49,31 +49,6 @@ AcpiOsFree (void * memory)
   return;
 }
 
-#ifndef HAVE_NOT_IMPLEMENTED_AcpiOsInstallInterruptHandler
-ACPI_STATUS
-AcpiOsInstallInterruptHandler (
-	uint32_t                        interrupt_number,
-	ACPI_OSD_HANDLER                service_routine,
-	void                            *context)
-{
-  printf("%s:%d:%s(%d, %p, %p): UNINPLEMENTED\n",
-         __FILE__, __LINE__, __func__,
-         interrupt_number, service_routine, context);
-  return AE_OK;
-}
-#endif
-
-ACPI_STATUS
-AcpiOsRemoveInterruptHandler (
-	uint32_t                        interrupt_number,
-	ACPI_OSD_HANDLER                service_routine)
-{
-  printf("%s:%d:%s(%d, %p): UNINPLEMENTED\n",
-         __FILE__, __LINE__, __func__,
-         interrupt_number, service_routine);
-  return AE_OK;
-}
-
 void
 AcpiOsSleep (ACPI_INTEGER milliseconds)
 {
