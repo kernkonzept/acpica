@@ -74,17 +74,6 @@ AcpiOsRemoveInterruptHandler (
   return AE_OK;
 }
 
-ACPI_STATUS
-AcpiOsExecute (
-	ACPI_EXECUTE_TYPE                type,
-	ACPI_OSD_EXEC_CALLBACK           function,
-	void                            *context)
-{
-  printf("%s:%d:%s(%d, %p, %p): UNINPLEMENTED\n",
-         __FILE__, __LINE__, __func__, type, function, context);
-  return !AE_OK;
-}
-
 void
 AcpiOsSleep (ACPI_INTEGER milliseconds)
 {
