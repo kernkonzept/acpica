@@ -144,7 +144,7 @@ AcpiOsGetRootPointer (void)
   ACPI_SIZE table_address = 0;
   printf("Find root Pointer\n");
   AcpiFindRootPointer(&table_address);
-  printf("Find root Pointer: %x\n", table_address);
+  printf("Find root Pointer: %lx\n", (unsigned long)table_address);
   return (ACPI_PHYSICAL_ADDRESS)table_address;
 }
 
@@ -238,8 +238,8 @@ AcpiOsReadMemory (
     UINT32                  Width)
 {
 
-    printf("%s:%d:%s(%x, %p, %u): UNINPLEMENTED\n",
-           __FILE__, __LINE__, __func__, Address, Value, Width);
+    printf("%s:%d:%s(%lx, %p, %u): UNINPLEMENTED\n",
+           __FILE__, __LINE__, __func__, (unsigned long)Address, Value, Width);
     switch (Width)
     {
     case 8:
@@ -276,8 +276,8 @@ AcpiOsWriteMemory (
     UINT64                  Value,
     UINT32                  Width)
 {
-  printf("%s:%d:%s(%x, %llu, %u): UNINPLEMENTED\n",
-         __FILE__, __LINE__, __func__, Address, Value, Width);
+  printf("%s:%d:%s(%lx, %llu, %u): UNINPLEMENTED\n",
+         __FILE__, __LINE__, __func__, (unsigned long)Address, Value, Width);
     return (AE_OK);
 }
 
