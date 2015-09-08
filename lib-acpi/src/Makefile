@@ -151,7 +151,7 @@ ACPICA_SRC_C		= \
 	utilities/utxfinit.c \
 
 SRC_C := $(addprefix acpica/components/,$(ACPICA_SRC_C))
-SRC_C += osl-stdio.c osl-thread.c debug.c
+SRC_C += osl-stdio.c debug.c
 SRC_CC+= osl-basic.cc
 
 DEFINES += -DACPI_LIBRARY -DL4_ACPICA
