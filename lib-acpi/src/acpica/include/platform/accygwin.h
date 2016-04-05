@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -122,6 +122,7 @@
 #define ACPI_USE_SYSTEM_CLIBRARY
 #define ACPI_USE_DO_WHILE_0
 #define ACPI_FLUSH_CPU_CACHE()
+
 /*
  * This is needed since sem_timedwait does not appear to work properly
  * on cygwin (always hangs forever).
@@ -160,5 +161,17 @@
 /* Cygwin uses GCC */
 
 #include "acgcc.h"
+
+
+/*
+ * The vsnprintf/snprintf functions are defined by c99, but cygwin/gcc
+ * does not enable this prototype when the -ansi flag is set. Also related
+ * to __STRICT_ANSI__. So, we just declare the prototype here.
+ */
+int
+vsnprintf (char *s, size_t n, const char *format, va_list ap);
+
+int
+snprintf (char *s, size_t n, const char *format, ...);
 
 #endif /* __ACCYGWIN_H__ */

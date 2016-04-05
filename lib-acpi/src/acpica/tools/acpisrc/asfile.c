@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -114,6 +114,7 @@
  *****************************************************************************/
 
 #include "acpisrc.h"
+#include "acapps.h"
 
 /* Local prototypes */
 
@@ -194,7 +195,7 @@ AsDoWildcard (
                 /* If we actually have a dir, process the subtree */
 
                 if (!AsCheckForDirectory (SourcePath, TargetPath, Filename,
-                        &SourceDirPath, &TargetDirPath))
+                    &SourceDirPath, &TargetDirPath))
                 {
                     VERBOSE_PRINT (("Subdirectory: %s\n", Filename));
 
@@ -211,10 +212,11 @@ AsDoWildcard (
                 VERBOSE_PRINT (("File: %s\n", Filename));
 
                 AsProcessOneFile (ConversionTable, SourcePath, TargetPath,
-                        MaxPathLength, Filename, FileType);
+                    MaxPathLength, Filename, FileType);
                 break;
 
             default:
+
                 break;
             }
         }
@@ -250,7 +252,7 @@ AsProcessTree (
     {
         if (ConversionTable->Flags & FLG_LOWERCASE_DIRNAMES)
         {
-            strlwr (TargetPath);
+            AcpiUtStrlwr (TargetPath);
         }
 
         VERBOSE_PRINT (("Creating Directory \"%s\"\n", TargetPath));
@@ -267,32 +269,32 @@ AsProcessTree (
     /* Do the C source files */
 
     AsDoWildcard (ConversionTable, SourcePath, TargetPath, MaxPathLength,
-            FILE_TYPE_SOURCE, "*.c");
+        FILE_TYPE_SOURCE, "*.c");
 
     /* Do the C header files */
 
     AsDoWildcard (ConversionTable, SourcePath, TargetPath, MaxPathLength,
-            FILE_TYPE_HEADER, "*.h");
+        FILE_TYPE_HEADER, "*.h");
 
     /* Do the Lex file(s) */
 
     AsDoWildcard (ConversionTable, SourcePath, TargetPath, MaxPathLength,
-            FILE_TYPE_SOURCE, "*.l");
+        FILE_TYPE_SOURCE, "*.l");
 
     /* Do the yacc file(s) */
 
     AsDoWildcard (ConversionTable, SourcePath, TargetPath, MaxPathLength,
-            FILE_TYPE_SOURCE, "*.y");
+        FILE_TYPE_SOURCE, "*.y");
 
     /* Do any ASL files */
 
     AsDoWildcard (ConversionTable, SourcePath, TargetPath, MaxPathLength,
-            FILE_TYPE_HEADER, "*.asl");
+        FILE_TYPE_HEADER, "*.asl");
 
     /* Do any subdirectories */
 
     AsDoWildcard (ConversionTable, SourcePath, TargetPath, MaxPathLength,
-            FILE_TYPE_DIRECTORY, "*");
+        FILE_TYPE_DIRECTORY, "*");
 
     return (0);
 }
@@ -329,6 +331,7 @@ AsDetectLoneLineFeeds (
             {
                 LfCount++;
             }
+
             LineCount++;
         }
         i++;
@@ -348,6 +351,7 @@ AsDetectLoneLineFeeds (
         {
             printf ("%s: %u lone linefeeds in file\n", Filename, LfCount);
         }
+
         return (TRUE);
     }
 
@@ -376,31 +380,44 @@ AsConvertFile (
     ACPI_STRING_TABLE       *StringTable;
     ACPI_IDENTIFIER_TABLE   *ConditionalTable;
     ACPI_IDENTIFIER_TABLE   *LineTable;
-    ACPI_IDENTIFIER_TABLE   *MacroTable;
     ACPI_TYPED_IDENTIFIER_TABLE *StructTable;
+    ACPI_IDENTIFIER_TABLE   *SpecialMacroTable;
 
 
     switch (FileType)
     {
     case FILE_TYPE_SOURCE:
+
         Functions           = ConversionTable->SourceFunctions;
         StringTable         = ConversionTable->SourceStringTable;
         LineTable           = ConversionTable->SourceLineTable;
         ConditionalTable    = ConversionTable->SourceConditionalTable;
-        MacroTable          = ConversionTable->SourceMacroTable;
         StructTable         = ConversionTable->SourceStructTable;
+        SpecialMacroTable   = ConversionTable->SourceSpecialMacroTable;
        break;
 
     case FILE_TYPE_HEADER:
+
         Functions           = ConversionTable->HeaderFunctions;
         StringTable         = ConversionTable->HeaderStringTable;
         LineTable           = ConversionTable->HeaderLineTable;
         ConditionalTable    = ConversionTable->HeaderConditionalTable;
-        MacroTable          = ConversionTable->HeaderMacroTable;
         StructTable         = ConversionTable->HeaderStructTable;
+        SpecialMacroTable   = ConversionTable->HeaderSpecialMacroTable;
+        break;
+
+    case FILE_TYPE_PATCH:
+
+        Functions           = ConversionTable->PatchFunctions;
+        StringTable         = ConversionTable->PatchStringTable;
+        LineTable           = ConversionTable->PatchLineTable;
+        ConditionalTable    = ConversionTable->PatchConditionalTable;
+        StructTable         = ConversionTable->PatchStructTable;
+        SpecialMacroTable   = ConversionTable->PatchSpecialMacroTable;
         break;
 
     default:
+
         printf ("Unknown file type, cannot process\n");
         return;
     }
@@ -422,7 +439,7 @@ AsConvertFile (
         for (i = 0; ConversionTable->LowerCaseTable[i].Identifier; i++)
         {
             AsLowerCaseString (ConversionTable->LowerCaseTable[i].Identifier,
-                                FileBuffer);
+                FileBuffer);
         }
     }
 
@@ -433,7 +450,7 @@ AsConvertFile (
         for (i = 0; StringTable[i].Target; i++)
         {
             AsReplaceString (StringTable[i].Target, StringTable[i].Replacement,
-                    StringTable[i].Type, FileBuffer);
+                StringTable[i].Type, FileBuffer);
         }
     }
 
@@ -453,6 +470,7 @@ AsConvertFile (
         }
     }
 
+#ifdef _OBSOLETE_FUNCTIONS
     if (MacroTable)
     {
         for (i = 0; MacroTable[i].Identifier; i++)
@@ -460,12 +478,22 @@ AsConvertFile (
             AsRemoveMacro (FileBuffer, MacroTable[i].Identifier);
         }
     }
+#endif
 
     if (StructTable)
     {
         for (i = 0; StructTable[i].Identifier; i++)
         {
-            AsInsertPrefix (FileBuffer, StructTable[i].Identifier, StructTable[i].Type);
+            AsInsertPrefix (FileBuffer, StructTable[i].Identifier,
+                StructTable[i].Type);
+        }
+    }
+
+    if (SpecialMacroTable)
+    {
+        for (i = 0; SpecialMacroTable[i].Identifier; i++)
+        {
+            AsCleanupSpecialMacro (FileBuffer, SpecialMacroTable[i].Identifier);
         }
     }
 
@@ -478,75 +506,64 @@ AsConvertFile (
         switch ((1 << i) & Functions)
         {
         case 0:
+
             /* This function not configured */
             break;
-
 
         case CVT_COUNT_TABS:
 
             AsCountTabs (FileBuffer, Filename);
             break;
 
-
         case CVT_COUNT_NON_ANSI_COMMENTS:
 
             AsCountNonAnsiComments (FileBuffer, Filename);
             break;
-
 
         case CVT_CHECK_BRACES:
 
             AsCheckForBraces (FileBuffer, Filename);
             break;
 
-
         case CVT_TRIM_LINES:
 
             AsTrimLines (FileBuffer, Filename);
             break;
-
 
         case CVT_COUNT_LINES:
 
             AsCountSourceLines (FileBuffer, Filename);
             break;
 
-
         case CVT_BRACES_ON_SAME_LINE:
 
             AsBracesOnSameLine (FileBuffer);
             break;
-
 
         case CVT_MIXED_CASE_TO_UNDERSCORES:
 
             AsMixedCaseToUnderscores (FileBuffer, Filename);
             break;
 
-
         case CVT_LOWER_CASE_IDENTIFIERS:
 
             AsLowerCaseIdentifiers (FileBuffer);
             break;
-
 
         case CVT_REMOVE_DEBUG_MACROS:
 
             AsRemoveDebugMacros (FileBuffer);
             break;
 
-
         case CVT_TRIM_WHITESPACE:
 
             AsTrimWhitespace (FileBuffer);
             break;
 
-
         case CVT_REMOVE_EMPTY_BLOCKS:
 
             AsRemoveEmptyBlocks (FileBuffer, Filename);
             break;
-
 
         case CVT_REDUCE_TYPEDEFS:
 
@@ -554,12 +571,10 @@ AsConvertFile (
             AsReduceTypedefs (FileBuffer, "typedef struct");
             break;
 
-
         case CVT_SPACES_TO_TABS4:
 
             AsTabify4 (FileBuffer);
             break;
-
 
         case CVT_SPACES_TO_TABS8:
 
@@ -632,6 +647,7 @@ AsProcessOneFile (
 
     if (AsGetFile (Pathname, &Gbl_FileBuffer, &Gbl_FileSize))
     {
+        free (Pathname);
         return (-1);
     }
 
@@ -670,7 +686,8 @@ AsProcessOneFile (
         {
             /* Generate the target pathname and write the file */
 
-            OutPathname = calloc (MaxPathLength + strlen (Filename) + 2 + strlen (TargetPath), 1);
+            OutPathname = calloc (MaxPathLength +
+                strlen (Filename) + 2 + strlen (TargetPath), 1);
             if (!OutPathname)
             {
                 printf ("Could not allocate buffer for file pathnames\n");
@@ -770,24 +787,27 @@ AsGetFile (
     char                    **FileBuffer,
     UINT32                  *FileSize)
 {
-
-    int                     FileHandle;
+    FILE                    *File;
     UINT32                  Size;
     char                    *Buffer;
+    size_t                  Actual;
 
 
     /* Binary mode leaves CR/LF pairs */
 
-    FileHandle = open (Filename, O_BINARY | O_RDONLY);
-    if (!FileHandle)
+    File = fopen (Filename, "rb");
+    if (!File)
     {
-        printf ("Could not open %s\n", Filename);
+        printf ("Could not open file %s\n", Filename);
         return (-1);
     }
 
-    if (fstat (FileHandle, &Gbl_StatBuf))
+    /* Need file size to allocate a buffer */
+
+    Size = CmGetFileSize (File);
+    if (Size == ACPI_UINT32_MAX)
     {
-        printf ("Could not get file status for %s\n", Filename);
+        printf ("Could not get file size for %s\n", Filename);
         goto ErrorExit;
     }
 
@@ -795,7 +815,6 @@ AsGetFile (
      * Create a buffer for the entire file
      * Add plenty extra buffer to accommodate string replacements
      */
-    Size = Gbl_StatBuf.st_size;
     Gbl_TotalSize += Size;
 
     Buffer = calloc (Size * 2, 1);
@@ -807,15 +826,16 @@ AsGetFile (
 
     /* Read the entire file */
 
-    Size = read (FileHandle, Buffer, Size);
-    if (Size == -1)
+    Actual = fread (Buffer, 1, Size, File);
+    if (Actual != Size)
     {
-        printf ("Could not read the input file %s\n", Filename);
-        goto ErrorExit;
+        printf ("Could not read the input file %s (%u bytes)\n",
+            Filename, Size);
+        goto ErrorFree;
     }
 
     Buffer [Size] = 0;         /* Null terminate the buffer */
-    close (FileHandle);
+    fclose (File);
 
     /* Check for unix contamination */
 
@@ -829,13 +849,14 @@ AsGetFile (
 
     *FileBuffer = Buffer;
     *FileSize = Size;
-
     return (0);
 
+ErrorFree:
+    free (Buffer);
 
 ErrorExit:
 
-    close (FileHandle);
+    fclose (File);
     return (-1);
 }
 
@@ -855,14 +876,13 @@ AsPutFile (
     char                    *FileBuffer,
     UINT32                  SystemFlags)
 {
+    FILE                    *File;
     UINT32                  FileSize;
-    int                     DestHandle;
-    int                     OpenFlags;
+    size_t                  Actual;
+    int                     Status = 0;
 
 
     /* Create the target file */
-
-    OpenFlags = O_TRUNC | O_CREAT | O_WRONLY | O_BINARY;
 
     if (!(SystemFlags & FLG_NO_CARRIAGE_RETURNS))
     {
@@ -871,8 +891,8 @@ AsPutFile (
         AsInsertCarriageReturns (FileBuffer);
     }
 
-    DestHandle = open (Pathname, OpenFlags, S_IREAD | S_IWRITE);
-    if (DestHandle == -1)
+    File = fopen (Pathname, "w+b");
+    if (!File)
     {
         perror ("Could not create destination file");
         printf ("Could not create destination file \"%s\"\n", Pathname);
@@ -882,11 +902,13 @@ AsPutFile (
     /* Write the buffer to the file */
 
     FileSize = strlen (FileBuffer);
-    if (write (DestHandle, FileBuffer, FileSize) == -1)
+    Actual = fwrite (FileBuffer, 1, FileSize, File);
+    if (Actual != FileSize)
     {
         printf ("Error writing output file \"%s\"\n", Pathname);
+        Status = -1;
     }
 
-    close (DestHandle);
-    return (0);
+    fclose (File);
+    return (Status);
 }

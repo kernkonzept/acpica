@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -113,13 +113,10 @@
  *
  *****************************************************************************/
 
-
 #include "acpi.h"
 #include "accommon.h"
 #include "acdisasm.h"
 
-
-#ifdef ACPI_DISASSEMBLER
 
 #define _COMPONENT          ACPI_CA_DEBUGGER
         ACPI_MODULE_NAME    ("dbresrcs")
@@ -129,7 +126,8 @@
  *
  * FUNCTION:    AcpiDmIrqDescriptor
  *
- * PARAMETERS:  Resource            - Pointer to the resource descriptor
+ * PARAMETERS:  Info                - Extra resource info
+ *              Resource            - Pointer to the resource descriptor
  *              Length              - Length of the descriptor in bytes
  *              Level               - Current source code indentation level
  *
@@ -141,6 +139,7 @@
 
 void
 AcpiDmIrqDescriptor (
+    ACPI_OP_WALK_INFO       *Info,
     AML_RESOURCE            *Resource,
     UINT32                  Length,
     UINT32                  Level)
@@ -148,16 +147,16 @@ AcpiDmIrqDescriptor (
 
     AcpiDmIndent (Level);
     AcpiOsPrintf ("%s (",
-        AcpiGbl_IrqDecode [Length & 1]);
+        AcpiGbl_IrqDecode [ACPI_GET_1BIT_FLAG (Length)]);
 
     /* Decode flags byte if present */
 
     if (Length & 1)
     {
         AcpiOsPrintf ("%s, %s, %s, ",
-            AcpiGbl_HeDecode [Resource->Irq.Flags & 1],
-            AcpiGbl_LlDecode [(Resource->Irq.Flags >> 3) & 1],
-            AcpiGbl_ShrDecode [(Resource->Irq.Flags >> 4) & 1]);
+            AcpiGbl_HeDecode [ACPI_GET_1BIT_FLAG (Resource->Irq.Flags)],
+            AcpiGbl_LlDecode [ACPI_EXTRACT_1BIT_FLAG (Resource->Irq.Flags, 3)],
+            AcpiGbl_ShrDecode [ACPI_EXTRACT_2BIT_FLAG (Resource->Irq.Flags, 4)]);
     }
 
     /* Insert a descriptor name */
@@ -174,7 +173,8 @@ AcpiDmIrqDescriptor (
  *
  * FUNCTION:    AcpiDmDmaDescriptor
  *
- * PARAMETERS:  Resource            - Pointer to the resource descriptor
+ * PARAMETERS:  Info                - Extra resource info
+ *              Resource            - Pointer to the resource descriptor
  *              Length              - Length of the descriptor in bytes
  *              Level               - Current source code indentation level
  *
@@ -186,6 +186,7 @@ AcpiDmIrqDescriptor (
 
 void
 AcpiDmDmaDescriptor (
+    ACPI_OP_WALK_INFO       *Info,
     AML_RESOURCE            *Resource,
     UINT32                  Length,
     UINT32                  Level)
@@ -193,9 +194,9 @@ AcpiDmDmaDescriptor (
 
     AcpiDmIndent (Level);
     AcpiOsPrintf ("DMA (%s, %s, %s, ",
-        AcpiGbl_TypDecode [(Resource->Dma.Flags >> 5) & 3],
-        AcpiGbl_BmDecode  [(Resource->Dma.Flags >> 2) & 1],
-        AcpiGbl_SizDecode [(Resource->Dma.Flags >> 0) & 3]);
+        AcpiGbl_TypDecode [ACPI_EXTRACT_2BIT_FLAG (Resource->Dma.Flags, 5)],
+        AcpiGbl_BmDecode  [ACPI_EXTRACT_1BIT_FLAG (Resource->Dma.Flags, 2)],
+        AcpiGbl_SizDecode [ACPI_GET_2BIT_FLAG (Resource->Dma.Flags)]);
 
     /* Insert a descriptor name */
 
@@ -211,7 +212,8 @@ AcpiDmDmaDescriptor (
  *
  * FUNCTION:    AcpiDmFixedDmaDescriptor
  *
- * PARAMETERS:  Resource            - Pointer to the resource descriptor
+ * PARAMETERS:  Info                - Extra resource info
+ *              Resource            - Pointer to the resource descriptor
  *              Length              - Length of the descriptor in bytes
  *              Level               - Current source code indentation level
  *
@@ -223,6 +225,7 @@ AcpiDmDmaDescriptor (
 
 void
 AcpiDmFixedDmaDescriptor (
+    ACPI_OP_WALK_INFO       *Info,
     AML_RESOURCE            *Resource,
     UINT32                  Length,
     UINT32                  Level)
@@ -240,7 +243,8 @@ AcpiDmFixedDmaDescriptor (
     }
     else
     {
-        AcpiOsPrintf ("%X /* INVALID DMA WIDTH */, ", Resource->FixedDma.Width);
+        AcpiOsPrintf ("%X /* INVALID DMA WIDTH */, ",
+            Resource->FixedDma.Width);
     }
 
     /* Insert a descriptor name */
@@ -254,7 +258,8 @@ AcpiDmFixedDmaDescriptor (
  *
  * FUNCTION:    AcpiDmIoDescriptor
  *
- * PARAMETERS:  Resource            - Pointer to the resource descriptor
+ * PARAMETERS:  Info                - Extra resource info
+ *              Resource            - Pointer to the resource descriptor
  *              Length              - Length of the descriptor in bytes
  *              Level               - Current source code indentation level
  *
@@ -266,6 +271,7 @@ AcpiDmFixedDmaDescriptor (
 
 void
 AcpiDmIoDescriptor (
+    ACPI_OP_WALK_INFO       *Info,
     AML_RESOURCE            *Resource,
     UINT32                  Length,
     UINT32                  Level)
@@ -273,7 +279,7 @@ AcpiDmIoDescriptor (
 
     AcpiDmIndent (Level);
     AcpiOsPrintf ("IO (%s,\n",
-        AcpiGbl_IoDecode [(Resource->Io.Flags & 1)]);
+        AcpiGbl_IoDecode [ACPI_GET_1BIT_FLAG (Resource->Io.Flags)]);
 
     AcpiDmIndent (Level + 1);
     AcpiDmDumpInteger16 (Resource->Io.Minimum, "Range Minimum");
@@ -299,7 +305,8 @@ AcpiDmIoDescriptor (
  *
  * FUNCTION:    AcpiDmFixedIoDescriptor
  *
- * PARAMETERS:  Resource            - Pointer to the resource descriptor
+ * PARAMETERS:  Info                - Extra resource info
+ *              Resource            - Pointer to the resource descriptor
  *              Length              - Length of the descriptor in bytes
  *              Level               - Current source code indentation level
  *
@@ -311,6 +318,7 @@ AcpiDmIoDescriptor (
 
 void
 AcpiDmFixedIoDescriptor (
+    ACPI_OP_WALK_INFO       *Info,
     AML_RESOURCE            *Resource,
     UINT32                  Length,
     UINT32                  Level)
@@ -337,7 +345,8 @@ AcpiDmFixedIoDescriptor (
  *
  * FUNCTION:    AcpiDmStartDependentDescriptor
  *
- * PARAMETERS:  Resource            - Pointer to the resource descriptor
+ * PARAMETERS:  Info                - Extra resource info
+ *              Resource            - Pointer to the resource descriptor
  *              Length              - Length of the descriptor in bytes
  *              Level               - Current source code indentation level
  *
@@ -349,6 +358,7 @@ AcpiDmFixedIoDescriptor (
 
 void
 AcpiDmStartDependentDescriptor (
+    ACPI_OP_WALK_INFO       *Info,
     AML_RESOURCE            *Resource,
     UINT32                  Length,
     UINT32                  Level)
@@ -359,8 +369,8 @@ AcpiDmStartDependentDescriptor (
     if (Length & 1)
     {
         AcpiOsPrintf ("StartDependentFn (0x%2.2X, 0x%2.2X)\n",
-            (UINT32) Resource->StartDpf.Flags & 3,
-            (UINT32) (Resource->StartDpf.Flags >> 2) & 3);
+            (UINT32) ACPI_GET_2BIT_FLAG (Resource->StartDpf.Flags),
+            (UINT32) ACPI_EXTRACT_2BIT_FLAG (Resource->StartDpf.Flags, 2));
     }
     else
     {
@@ -376,7 +386,8 @@ AcpiDmStartDependentDescriptor (
  *
  * FUNCTION:    AcpiDmEndDependentDescriptor
  *
- * PARAMETERS:  Resource            - Pointer to the resource descriptor
+ * PARAMETERS:  Info                - Extra resource info
+ *              Resource            - Pointer to the resource descriptor
  *              Length              - Length of the descriptor in bytes
  *              Level               - Current source code indentation level
  *
@@ -388,6 +399,7 @@ AcpiDmStartDependentDescriptor (
 
 void
 AcpiDmEndDependentDescriptor (
+    ACPI_OP_WALK_INFO       *Info,
     AML_RESOURCE            *Resource,
     UINT32                  Length,
     UINT32                  Level)
@@ -404,7 +416,8 @@ AcpiDmEndDependentDescriptor (
  *
  * FUNCTION:    AcpiDmVendorSmallDescriptor
  *
- * PARAMETERS:  Resource            - Pointer to the resource descriptor
+ * PARAMETERS:  Info                - Extra resource info
+ *              Resource            - Pointer to the resource descriptor
  *              Length              - Length of the descriptor in bytes
  *              Level               - Current source code indentation level
  *
@@ -416,6 +429,7 @@ AcpiDmEndDependentDescriptor (
 
 void
 AcpiDmVendorSmallDescriptor (
+    ACPI_OP_WALK_INFO       *Info,
     AML_RESOURCE            *Resource,
     UINT32                  Length,
     UINT32                  Level)
@@ -425,5 +439,3 @@ AcpiDmVendorSmallDescriptor (
         ACPI_ADD_PTR (UINT8, Resource, sizeof (AML_RESOURCE_SMALL_HEADER)),
         Length, Level);
 }
-
-#endif

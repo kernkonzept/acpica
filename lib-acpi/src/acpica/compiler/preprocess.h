@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -196,6 +196,17 @@ typedef struct pr_file_node
 
 } PR_FILE_NODE;
 
+#define MAX_ARGUMENT_LENGTH     24
+
+typedef struct directive_info
+{
+    struct directive_info       *Next;
+    char                        Argument[MAX_ARGUMENT_LENGTH];
+    int                         Directive;
+    BOOLEAN                     IgnoringThisCodeBlock;
+
+} DIRECTIVE_INFO;
+
 
 /*
  * Globals
@@ -208,12 +219,13 @@ PR_EXTERN char                  PR_INIT_GLOBAL (*Gbl_MainTokenBuffer, NULL); /* 
 PR_EXTERN char                  PR_INIT_GLOBAL (*Gbl_MacroTokenBuffer, NULL); /* [ASL_LINE_BUFFER_SIZE]; */
 PR_EXTERN char                  PR_INIT_GLOBAL (*Gbl_ExpressionTokenBuffer, NULL); /* [ASL_LINE_BUFFER_SIZE]; */
 
-PR_EXTERN PR_FILE_NODE          *Gbl_InputFileList;
-PR_EXTERN PR_DEFINE_INFO        PR_INIT_GLOBAL (*Gbl_DefineList, NULL);
 PR_EXTERN UINT32                Gbl_PreprocessorLineNumber;
 PR_EXTERN int                   Gbl_IfDepth;
+PR_EXTERN PR_FILE_NODE          *Gbl_InputFileList;
+PR_EXTERN PR_DEFINE_INFO        PR_INIT_GLOBAL (*Gbl_DefineList, NULL);
 PR_EXTERN BOOLEAN               PR_INIT_GLOBAL (Gbl_PreprocessorError, FALSE);
-
+PR_EXTERN BOOLEAN               PR_INIT_GLOBAL (Gbl_IgnoringThisCodeBlock, FALSE);
+PR_EXTERN DIRECTIVE_INFO        PR_INIT_GLOBAL (*Gbl_DirectiveStack, NULL);
 
 /*
  * prscan - Preprocessor entry
@@ -230,7 +242,7 @@ void
 PrTerminatePreprocessor (
     void);
 
-BOOLEAN
+void
 PrDoPreprocess (
     void);
 
@@ -317,7 +329,7 @@ PrGetNextToken (
 void
 PrError (
     UINT8                   Level,
-    UINT8                   MessageId,
+    UINT16                  MessageId,
     UINT32                  Column);
 
 void
@@ -327,14 +339,18 @@ PrReplaceData (
     char                    *BufferToAdd,
     UINT32                  LengthToAdd);
 
-void
+FILE *
 PrOpenIncludeFile (
-    char                    *Filename);
+    char                    *Filename,
+    char                    *OpenMode,
+    char                    **FullPathname);
 
 FILE *
 PrOpenIncludeWithPrefix (
     char                    *PrefixDir,
-    char                    *Filename);
+    char                    *Filename,
+    char                    *OpenMode,
+    char                    **FullPathname);
 
 void
 PrPushInputFileStack (

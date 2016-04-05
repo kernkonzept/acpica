@@ -6,8 +6,10 @@ CONTRIB_INCDIR  = acpica
 
 IASL ?= iasl
 
-ACPICA_SRC_C		= \
+ACPICA_SRC_C_DISASM = \
 	disassembler/dmbuffer.c \
+	disassembler/dmcstyle.c \
+	disassembler/dmdeferred.c \
 	disassembler/dmnames.c \
 	disassembler/dmobject.c \
 	disassembler/dmopcode.c \
@@ -17,8 +19,11 @@ ACPICA_SRC_C		= \
 	disassembler/dmresrcs.c \
 	disassembler/dmutils.c \
 	disassembler/dmwalk.c \
+
+ACPICA_SRC_C		= \
 	dispatcher/dsargs.c \
 	dispatcher/dscontrol.c \
+	dispatcher/dsdebug.c \
 	dispatcher/dsfield.c \
 	dispatcher/dsinit.c \
 	dispatcher/dsmethod.c \
@@ -37,6 +42,7 @@ ACPICA_SRC_C		= \
 	events/evgpeblk.c \
 	events/evgpeinit.c \
 	events/evgpeutil.c \
+	events/evhandler.c \
 	events/evmisc.c \
 	events/evregion.c \
 	events/evrgnini.c \
@@ -45,6 +51,7 @@ ACPICA_SRC_C		= \
 	events/evxfevnt.c \
 	events/evxfgpe.c \
 	events/evxfregn.c \
+	executer/exconcat.c \
 	executer/exconfig.c \
 	executer/exconvrt.c \
 	executer/excreate.c \
@@ -68,6 +75,7 @@ ACPICA_SRC_C		= \
 	executer/exstoren.c \
 	executer/exstorob.c \
 	executer/exsystem.c \
+	executer/extrace.c \
 	executer/exutils.c \
 	hardware/hwacpi.c \
 	hardware/hwgpe.c \
@@ -80,6 +88,8 @@ ACPICA_SRC_C		= \
 	hardware/hwxfsleep.c \
 	namespace/nsaccess.c \
 	namespace/nsalloc.c \
+	namespace/nsarguments.c \
+	namespace/nsconvert.c \
 	namespace/nsdump.c \
 	namespace/nseval.c \
 	namespace/nsinit.c \
@@ -88,6 +98,7 @@ ACPICA_SRC_C		= \
 	namespace/nsobject.c \
 	namespace/nsparse.c \
 	namespace/nspredef.c \
+	namespace/nsprepkg.c \
 	namespace/nsrepair.c \
 	namespace/nsrepair2.c \
 	namespace/nssearch.c \
@@ -98,7 +109,9 @@ ACPICA_SRC_C		= \
 	namespace/nsxfobj.c \
 	parser/psargs.c \
 	parser/psloop.c \
+	parser/psobject.c \
 	parser/psopcode.c \
+	parser/psopinfo.c \
 	parser/psparse.c \
 	parser/psscope.c \
 	parser/pstree.c \
@@ -109,6 +122,7 @@ ACPICA_SRC_C		= \
 	resources/rscalc.c \
 	resources/rscreate.c \
 	resources/rsdump.c \
+	resources/rsdumpinfo.c \
 	resources/rsinfo.c \
 	resources/rsio.c \
 	resources/rsirq.c \
@@ -118,34 +132,45 @@ ACPICA_SRC_C		= \
 	resources/rsserial.c \
 	resources/rsutils.c \
 	resources/rsxface.c \
+	tables/tbdata.c \
 	tables/tbfadt.c \
 	tables/tbfind.c \
 	tables/tbinstal.c \
+	tables/tbprint.c \
 	tables/tbutils.c \
 	tables/tbxface.c \
 	tables/tbxfload.c \
 	tables/tbxfroot.c \
 	utilities/utaddress.c \
 	utilities/utalloc.c \
+	utilities/utbuffer.c \
 	utilities/utcache.c \
 	utilities/utclib.c \
 	utilities/utcopy.c \
 	utilities/utdebug.c \
 	utilities/utdecode.c \
 	utilities/utdelete.c \
+	utilities/uterror.c \
 	utilities/uteval.c \
         utilities/utexcep.c \
 	utilities/utglobal.c \
+	utilities/uthex.c \
 	utilities/utids.c \
 	utilities/utinit.c \
 	utilities/utlock.c \
 	utilities/utmath.c \
 	utilities/utmisc.c \
 	utilities/utmutex.c \
+	utilities/utnonansi.c \
 	utilities/utobject.c \
 	utilities/utosi.c \
+	utilities/utownerid.c \
+	utilities/utpredef.c \
+	utilities/utprint.c \
 	utilities/utresrc.c \
 	utilities/utstate.c \
+	utilities/utstring.c \
+	utilities/utuuid.c \
 	utilities/utxface.c \
 	utilities/utxferror.c \
 	utilities/utxfinit.c \
@@ -154,7 +179,7 @@ SRC_C := $(addprefix acpica/components/,$(ACPICA_SRC_C))
 SRC_C += osl-stdio.c debug.c
 SRC_CC+= osl-basic.cc
 
-DEFINES += -DACPI_LIBRARY -DL4_ACPICA
+DEFINES += -DL4_ACPICA
 
 include $(L4DIR)/mk/lib.mk
 

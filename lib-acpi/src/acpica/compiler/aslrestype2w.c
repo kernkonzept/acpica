@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -113,7 +113,6 @@
  *
  *****************************************************************************/
 
-
 #include "aslcompiler.h"
 #include "aslcompiler.y.h"
 
@@ -132,9 +131,7 @@
  *
  * FUNCTION:    RsDoWordIoDescriptor
  *
- * PARAMETERS:  Op                  - Parent resource descriptor parse node
- *              CurrentByteOffset   - Offset into the resource template AML
- *                                    buffer (to track references to the desc)
+ * PARAMETERS:  Info                - Parse Op and resource template offset
  *
  * RETURN:      Completed resource node
  *
@@ -144,8 +141,7 @@
 
 ASL_RESOURCE_NODE *
 RsDoWordIoDescriptor (
-    ACPI_PARSE_OBJECT       *Op,
-    UINT32                  CurrentByteOffset)
+    ASL_RESOURCE_INFO       *Info)
 {
     AML_RESOURCE            *Descriptor;
     ACPI_PARSE_OBJECT       *InitializerOp;
@@ -157,19 +153,21 @@ RsDoWordIoDescriptor (
     UINT8                   *OptionalFields;
     UINT16                  StringLength = 0;
     UINT32                  OptionIndex = 0;
+    UINT32                  CurrentByteOffset;
     UINT32                  i;
     BOOLEAN                 ResSourceIndex = FALSE;
 
 
-    InitializerOp = Op->Asl.Child;
+    InitializerOp = Info->DescriptorTypeOp->Asl.Child;
     StringLength = RsGetStringDataLength (InitializerOp);
+    CurrentByteOffset = Info->CurrentByteOffset;
 
     Rnode = RsAllocateResourceNode (
-                sizeof (AML_RESOURCE_ADDRESS16) + 1 + StringLength);
+        sizeof (AML_RESOURCE_ADDRESS16) + 1 + StringLength);
 
     Descriptor = Rnode->Buffer;
-    Descriptor->Address16.DescriptorType  = ACPI_RESOURCE_NAME_ADDRESS16;
-    Descriptor->Address16.ResourceType    = ACPI_ADDRESS_TYPE_IO_RANGE;
+    Descriptor->Address16.DescriptorType = ACPI_RESOURCE_NAME_ADDRESS16;
+    Descriptor->Address16.ResourceType = ACPI_ADDRESS_TYPE_IO_RANGE;
 
     /*
      * Initial descriptor length -- may be enlarged if there are
@@ -308,7 +306,7 @@ RsDoWordIoDescriptor (
 
         case 12: /* ResourceTag */
 
-            UtAttachNamepathToOwner (Op, InitializerOp);
+            UtAttachNamepathToOwner (Info->DescriptorTypeOp, InitializerOp);
             break;
 
         case 13: /* Type */
@@ -342,10 +340,10 @@ RsDoWordIoDescriptor (
         (UINT64) Descriptor->Address16.AddressLength,
         (UINT64) Descriptor->Address16.Granularity,
         Descriptor->Address16.Flags,
-        MinOp, MaxOp, LengthOp, GranOp, Op);
+        MinOp, MaxOp, LengthOp, GranOp, Info->DescriptorTypeOp);
 
     Rnode->BufferLength = sizeof (AML_RESOURCE_ADDRESS16) +
-                            OptionIndex + StringLength;
+        OptionIndex + StringLength;
     return (Rnode);
 }
 
@@ -354,9 +352,7 @@ RsDoWordIoDescriptor (
  *
  * FUNCTION:    RsDoWordBusNumberDescriptor
  *
- * PARAMETERS:  Op                  - Parent resource descriptor parse node
- *              CurrentByteOffset   - Offset into the resource template AML
- *                                    buffer (to track references to the desc)
+ * PARAMETERS:  Info                - Parse Op and resource template offset
  *
  * RETURN:      Completed resource node
  *
@@ -366,8 +362,7 @@ RsDoWordIoDescriptor (
 
 ASL_RESOURCE_NODE *
 RsDoWordBusNumberDescriptor (
-    ACPI_PARSE_OBJECT       *Op,
-    UINT32                  CurrentByteOffset)
+    ASL_RESOURCE_INFO       *Info)
 {
     AML_RESOURCE            *Descriptor;
     ACPI_PARSE_OBJECT       *InitializerOp;
@@ -379,19 +374,21 @@ RsDoWordBusNumberDescriptor (
     UINT8                   *OptionalFields;
     UINT16                  StringLength = 0;
     UINT32                  OptionIndex = 0;
+    UINT32                  CurrentByteOffset;
     UINT32                  i;
     BOOLEAN                 ResSourceIndex = FALSE;
 
 
-    InitializerOp = Op->Asl.Child;
+    InitializerOp = Info->DescriptorTypeOp->Asl.Child;
     StringLength = RsGetStringDataLength (InitializerOp);
+    CurrentByteOffset = Info->CurrentByteOffset;
 
     Rnode = RsAllocateResourceNode (
-                sizeof (AML_RESOURCE_ADDRESS16) + 1 + StringLength);
+        sizeof (AML_RESOURCE_ADDRESS16) + 1 + StringLength);
 
     Descriptor = Rnode->Buffer;
-    Descriptor->Address16.DescriptorType  = ACPI_RESOURCE_NAME_ADDRESS16;
-    Descriptor->Address16.ResourceType    = ACPI_ADDRESS_TYPE_BUS_NUMBER_RANGE;
+    Descriptor->Address16.DescriptorType = ACPI_RESOURCE_NAME_ADDRESS16;
+    Descriptor->Address16.ResourceType = ACPI_ADDRESS_TYPE_BUS_NUMBER_RANGE;
 
     /*
      * Initial descriptor length -- may be enlarged if there are
@@ -528,7 +525,7 @@ RsDoWordBusNumberDescriptor (
 
         case 11: /* ResourceTag */
 
-            UtAttachNamepathToOwner (Op, InitializerOp);
+            UtAttachNamepathToOwner (Info->DescriptorTypeOp, InitializerOp);
             break;
 
         default:
@@ -548,10 +545,10 @@ RsDoWordBusNumberDescriptor (
         (UINT64) Descriptor->Address16.AddressLength,
         (UINT64) Descriptor->Address16.Granularity,
         Descriptor->Address16.Flags,
-        MinOp, MaxOp, LengthOp, GranOp, Op);
+        MinOp, MaxOp, LengthOp, GranOp, Info->DescriptorTypeOp);
 
     Rnode->BufferLength = sizeof (AML_RESOURCE_ADDRESS16) +
-                            OptionIndex + StringLength;
+        OptionIndex + StringLength;
     return (Rnode);
 }
 
@@ -560,9 +557,7 @@ RsDoWordBusNumberDescriptor (
  *
  * FUNCTION:    RsDoWordSpaceDescriptor
  *
- * PARAMETERS:  Op                  - Parent resource descriptor parse node
- *              CurrentByteOffset   - Offset into the resource template AML
- *                                    buffer (to track references to the desc)
+ * PARAMETERS:  Info                - Parse Op and resource template offset
  *
  * RETURN:      Completed resource node
  *
@@ -572,8 +567,7 @@ RsDoWordBusNumberDescriptor (
 
 ASL_RESOURCE_NODE *
 RsDoWordSpaceDescriptor (
-    ACPI_PARSE_OBJECT       *Op,
-    UINT32                  CurrentByteOffset)
+    ASL_RESOURCE_INFO       *Info)
 {
     AML_RESOURCE            *Descriptor;
     ACPI_PARSE_OBJECT       *InitializerOp;
@@ -585,18 +579,20 @@ RsDoWordSpaceDescriptor (
     UINT8                   *OptionalFields;
     UINT16                  StringLength = 0;
     UINT32                  OptionIndex = 0;
+    UINT32                  CurrentByteOffset;
     UINT32                  i;
     BOOLEAN                 ResSourceIndex = FALSE;
 
 
-    InitializerOp = Op->Asl.Child;
+    InitializerOp = Info->DescriptorTypeOp->Asl.Child;
     StringLength = RsGetStringDataLength (InitializerOp);
+    CurrentByteOffset = Info->CurrentByteOffset;
 
     Rnode = RsAllocateResourceNode (
-                sizeof (AML_RESOURCE_ADDRESS16) + 1 + StringLength);
+        sizeof (AML_RESOURCE_ADDRESS16) + 1 + StringLength);
 
     Descriptor = Rnode->Buffer;
-    Descriptor->Address16.DescriptorType  = ACPI_RESOURCE_NAME_ADDRESS16;
+    Descriptor->Address16.DescriptorType = ACPI_RESOURCE_NAME_ADDRESS16;
 
     /*
      * Initial descriptor length -- may be enlarged if there are
@@ -745,7 +741,7 @@ RsDoWordSpaceDescriptor (
 
         case 13: /* ResourceTag */
 
-            UtAttachNamepathToOwner (Op, InitializerOp);
+            UtAttachNamepathToOwner (Info->DescriptorTypeOp, InitializerOp);
             break;
 
         default:
@@ -765,9 +761,9 @@ RsDoWordSpaceDescriptor (
         (UINT64) Descriptor->Address16.AddressLength,
         (UINT64) Descriptor->Address16.Granularity,
         Descriptor->Address16.Flags,
-        MinOp, MaxOp, LengthOp, GranOp, Op);
+        MinOp, MaxOp, LengthOp, GranOp, Info->DescriptorTypeOp);
 
     Rnode->BufferLength = sizeof (AML_RESOURCE_ADDRESS16) +
-                            OptionIndex + StringLength;
+        OptionIndex + StringLength;
     return (Rnode);
 }

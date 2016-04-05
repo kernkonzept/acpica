@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -114,8 +114,6 @@
  *
  *****************************************************************************/
 
-#define __EXOPARG6_C__
-
 #include "acpi.h"
 #include "accommon.h"
 #include "acinterp.h"
@@ -203,13 +201,12 @@ AcpiExDoMatch (
         break;
 
     case MATCH_MEQ:
-
         /*
          * True if equal: (P[i] == M)
          * Change to:     (M == P[i])
          */
-        Status = AcpiExDoLogicalOp (AML_LEQUAL_OP, MatchObj, PackageObj,
-                    &LogicalResult);
+        Status = AcpiExDoLogicalOp (
+            AML_LEQUAL_OP, MatchObj, PackageObj, &LogicalResult);
         if (ACPI_FAILURE (Status))
         {
             return (FALSE);
@@ -217,13 +214,12 @@ AcpiExDoMatch (
         break;
 
     case MATCH_MLE:
-
         /*
          * True if less than or equal: (P[i] <= M) (P[i] NotGreater than M)
          * Change to:                  (M >= P[i]) (M NotLess than P[i])
          */
-        Status = AcpiExDoLogicalOp (AML_LLESS_OP, MatchObj, PackageObj,
-                    &LogicalResult);
+        Status = AcpiExDoLogicalOp (
+            AML_LLESS_OP, MatchObj, PackageObj, &LogicalResult);
         if (ACPI_FAILURE (Status))
         {
             return (FALSE);
@@ -232,13 +228,12 @@ AcpiExDoMatch (
         break;
 
     case MATCH_MLT:
-
         /*
          * True if less than: (P[i] < M)
          * Change to:         (M > P[i])
          */
-        Status = AcpiExDoLogicalOp (AML_LGREATER_OP, MatchObj, PackageObj,
-                    &LogicalResult);
+        Status = AcpiExDoLogicalOp (
+            AML_LGREATER_OP, MatchObj, PackageObj, &LogicalResult);
         if (ACPI_FAILURE (Status))
         {
             return (FALSE);
@@ -246,13 +241,12 @@ AcpiExDoMatch (
         break;
 
     case MATCH_MGE:
-
         /*
          * True if greater than or equal: (P[i] >= M) (P[i] NotLess than M)
          * Change to:                     (M <= P[i]) (M NotGreater than P[i])
          */
-        Status = AcpiExDoLogicalOp (AML_LGREATER_OP, MatchObj, PackageObj,
-                    &LogicalResult);
+        Status = AcpiExDoLogicalOp (
+            AML_LGREATER_OP, MatchObj, PackageObj, &LogicalResult);
         if (ACPI_FAILURE (Status))
         {
             return (FALSE);
@@ -261,13 +255,12 @@ AcpiExDoMatch (
         break;
 
     case MATCH_MGT:
-
         /*
          * True if greater than: (P[i] > M)
          * Change to:            (M < P[i])
          */
-        Status = AcpiExDoLogicalOp (AML_LLESS_OP, MatchObj, PackageObj,
-                    &LogicalResult);
+        Status = AcpiExDoLogicalOp (
+            AML_LLESS_OP, MatchObj, PackageObj, &LogicalResult);
         if (ACPI_FAILURE (Status))
         {
             return (FALSE);
@@ -383,13 +376,13 @@ AcpiExOpcode_6A_0T_1R (
              * non-match.
              */
             if (!AcpiExDoMatch ((UINT32) Operand[1]->Integer.Value,
-                                ThisElement, Operand[2]))
+                    ThisElement, Operand[2]))
             {
                 continue;
             }
 
             if (!AcpiExDoMatch ((UINT32) Operand[3]->Integer.Value,
-                                ThisElement, Operand[4]))
+                    ThisElement, Operand[4]))
             {
                 continue;
             }
@@ -401,17 +394,16 @@ AcpiExOpcode_6A_0T_1R (
         }
         break;
 
-
     case AML_LOAD_TABLE_OP:
 
         Status = AcpiExLoadTableOp (WalkState, &ReturnDesc);
         break;
 
-
     default:
 
         ACPI_ERROR ((AE_INFO, "Unknown AML opcode 0x%X",
             WalkState->Opcode));
+
         Status = AE_AML_BAD_OPCODE;
         goto Cleanup;
     }

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Module Name: examples - Example ACPICA code
+ * Module Name: examples - Example ACPICA initialization and execution code
  *
  *****************************************************************************/
 
@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -113,18 +113,7 @@
  *
  *****************************************************************************/
 
-
-/* Set the ACPICA application type for use in include/platform/acenv.h */
-
-#ifndef WIN32
-#define WIN32
-#endif
-
-#define ACPI_DEBUG_OUTPUT
-
-/* ACPICA public headers */
-
-#include "acpi.h"
+#include "examples.h"
 
 #define _COMPONENT          ACPI_EXAMPLE
         ACPI_MODULE_NAME    ("examples")
@@ -153,21 +142,50 @@
  *
  *****************************************************************************/
 
-/* Standard Clib headers */
-
-#include <stdio.h>
-#include <string.h>
 
 /* Local Prototypes */
 
-ACPI_STATUS
-InitializeFullAcpi (void);
+static ACPI_STATUS
+InitializeFullAcpica (void);
 
-ACPI_STATUS
+static ACPI_STATUS
 InstallHandlers (void);
 
-void
+static void
+NotifyHandler (
+    ACPI_HANDLE             Device,
+    UINT32                  Value,
+    void                    *Context);
+
+static ACPI_STATUS
+RegionHandler (
+    UINT32                  Function,
+    ACPI_PHYSICAL_ADDRESS   Address,
+    UINT32                  BitWidth,
+    UINT64                  *Value,
+    void                    *HandlerContext,
+    void                    *RegionContext);
+
+static ACPI_STATUS
+RegionInit (
+    ACPI_HANDLE             RegionHandle,
+    UINT32                  Function,
+    void                    *HandlerContext,
+    void                    **RegionContext);
+
+static void
+ExecuteMAIN (void);
+
+static void
 ExecuteOSI (void);
+
+ACPI_STATUS
+InitializeAcpiTables (
+    void);
+
+ACPI_STATUS
+InitializeAcpi (
+    void);
 
 
 /******************************************************************************
@@ -188,25 +206,29 @@ main (
     int                     argc,
     char                    **argv)
 {
-    ACPI_FUNCTION_NAME (Examples-main);
 
+    ACPI_DEBUG_INITIALIZE (); /* For debug version only */
 
-    InitializeFullAcpi ();
+    printf (ACPI_COMMON_SIGNON ("ACPI Example Code"));
 
-    /* Enable debug output, example debug print */
+    /* Initialize the local ACPI tables (RSDP/RSDT/XSDT/FADT/DSDT/FACS) */
 
-    AcpiDbgLayer = ACPI_EXAMPLE;
-    AcpiDbgLevel = ACPI_LV_INIT;
-    ACPI_DEBUG_PRINT ((ACPI_DB_INIT, "Example Debug output\n"));
+    ExInitializeAcpiTables ();
+
+    /* Initialize the ACPICA subsystem */
+
+    InitializeFullAcpica ();
 
     /* Example warning and error output */
 
-    ACPI_INFO        ((AE_INFO, "ACPICA example info message"));
-    ACPI_WARNING     ((AE_INFO, "ACPICA example warning message"));
-    ACPI_ERROR       ((AE_INFO, "ACPICA example error message"));
-    ACPI_EXCEPTION   ((AE_INFO, AE_AML_OPERAND_TYPE, "Example exception message"));
+    ACPI_INFO        (("Example ACPICA info message"));
+    ACPI_WARNING     ((AE_INFO, "Example ACPICA warning message"));
+    ACPI_ERROR       ((AE_INFO, "Example ACPICA error message"));
+    ACPI_EXCEPTION   ((AE_INFO, AE_AML_OPERAND_TYPE,
+        "Example ACPICA exception message"));
 
     ExecuteOSI ();
+    ExecuteMAIN ();
     return (0);
 }
 
@@ -218,8 +240,8 @@ main (
  *
  *****************************************************************************/
 
-ACPI_STATUS
-InitializeFullAcpi (void)
+static ACPI_STATUS
+InitializeFullAcpica (void)
 {
     ACPI_STATUS             Status;
 
@@ -235,19 +257,12 @@ InitializeFullAcpi (void)
 
     /* Initialize the ACPICA Table Manager and get all ACPI tables */
 
+    ACPI_INFO (("Loading ACPI tables"));
+
     Status = AcpiInitializeTables (NULL, 16, FALSE);
     if (ACPI_FAILURE (Status))
     {
         ACPI_EXCEPTION ((AE_INFO, Status, "While initializing Table Manager"));
-        return (Status);
-    }
-
-    /* Create the ACPI namespace from ACPI tables */
-
-    Status = AcpiLoadTables ();
-    if (ACPI_FAILURE (Status))
-    {
-        ACPI_EXCEPTION ((AE_INFO, Status, "While loading ACPI tables"));
         return (Status);
     }
 
@@ -266,6 +281,15 @@ InitializeFullAcpi (void)
     if (ACPI_FAILURE (Status))
     {
         ACPI_EXCEPTION ((AE_INFO, Status, "While enabling ACPICA"));
+        return (Status);
+    }
+
+    /* Create the ACPI namespace from ACPI tables */
+
+    Status = AcpiLoadTables ();
+    if (ACPI_FAILURE (Status))
+    {
+        ACPI_EXCEPTION ((AE_INFO, Status, "While loading ACPI tables"));
         return (Status);
     }
 
@@ -304,7 +328,8 @@ static ACPI_TABLE_DESC      TableArray[ACPI_MAX_INIT_TABLES];
  * is called, all ACPI tables are available to the host.
  */
 ACPI_STATUS
-InitializeAcpiTables (void)
+InitializeAcpiTables (
+    void)
 {
     ACPI_STATUS             Status;
 
@@ -322,7 +347,8 @@ InitializeAcpiTables (void)
  * the ACPICA subsystem.
  */
 ACPI_STATUS
-InitializeAcpi (void)
+InitializeAcpi (
+    void)
 {
     ACPI_STATUS             Status;
 
@@ -343,14 +369,6 @@ InitializeAcpi (void)
         return (Status);
     }
 
-    /* Create the ACPI namespace from ACPI tables */
-
-    Status = AcpiLoadTables ();
-    if (ACPI_FAILURE (Status))
-    {
-        return (Status);
-    }
-
     /* Install local handlers */
 
     Status = InstallHandlers ();
@@ -363,6 +381,14 @@ InitializeAcpi (void)
     /* Initialize the ACPI hardware */
 
     Status = AcpiEnableSubsystem (ACPI_FULL_INITIALIZATION);
+    if (ACPI_FAILURE (Status))
+    {
+        return (Status);
+    }
+
+    /* Create the ACPI namespace from ACPI tables */
+
+    Status = AcpiLoadTables ();
     if (ACPI_FAILURE (Status))
     {
         return (Status);
@@ -386,18 +412,55 @@ InitializeAcpi (void)
  *
  *****************************************************************************/
 
-void
+static void
 NotifyHandler (
     ACPI_HANDLE                 Device,
     UINT32                      Value,
     void                        *Context)
 {
 
-    ACPI_INFO ((AE_INFO, "Received a notify 0x%X", Value));
+    ACPI_INFO (("Received a notify 0x%X", Value));
 }
 
 
-ACPI_STATUS
+static ACPI_STATUS
+RegionInit (
+    ACPI_HANDLE                 RegionHandle,
+    UINT32                      Function,
+    void                        *HandlerContext,
+    void                        **RegionContext)
+{
+
+    if (Function == ACPI_REGION_DEACTIVATE)
+    {
+        *RegionContext = NULL;
+    }
+    else
+    {
+        *RegionContext = RegionHandle;
+    }
+
+    return (AE_OK);
+}
+
+
+static ACPI_STATUS
+RegionHandler (
+    UINT32                      Function,
+    ACPI_PHYSICAL_ADDRESS       Address,
+    UINT32                      BitWidth,
+    UINT64                      *Value,
+    void                        *HandlerContext,
+    void                        *RegionContext)
+{
+
+    ACPI_INFO (("Received a region access"));
+
+    return (AE_OK);
+}
+
+
+static ACPI_STATUS
 InstallHandlers (void)
 {
     ACPI_STATUS             Status;
@@ -405,11 +468,19 @@ InstallHandlers (void)
 
     /* Install global notify handler */
 
-    Status = AcpiInstallNotifyHandler (ACPI_ROOT_OBJECT, ACPI_SYSTEM_NOTIFY,
-                                        NotifyHandler, NULL);
+    Status = AcpiInstallNotifyHandler (ACPI_ROOT_OBJECT,
+        ACPI_SYSTEM_NOTIFY, NotifyHandler, NULL);
     if (ACPI_FAILURE (Status))
     {
         ACPI_EXCEPTION ((AE_INFO, Status, "While installing Notify handler"));
+        return (Status);
+    }
+
+    Status = AcpiInstallAddressSpaceHandler (ACPI_ROOT_OBJECT,
+        ACPI_ADR_SPACE_SYSTEM_MEMORY, RegionHandler, RegionInit, NULL);
+    if (ACPI_FAILURE (Status))
+    {
+        ACPI_EXCEPTION ((AE_INFO, Status, "While installing an OpRegion handler"));
         return (Status);
     }
 
@@ -419,7 +490,7 @@ InstallHandlers (void)
 
 /******************************************************************************
  *
- * Example control method execution.
+ * Examples of control method execution.
  *
  * _OSI is a predefined method that is implemented internally within ACPICA.
  *
@@ -433,7 +504,7 @@ InstallHandlers (void)
  *
  *****************************************************************************/
 
-void
+static void
 ExecuteOSI (void)
 {
     ACPI_STATUS             Status;
@@ -443,7 +514,7 @@ ExecuteOSI (void)
     ACPI_OBJECT             *Object;
 
 
-    ACPI_INFO ((AE_INFO, "Executing OSI method"));
+    ACPI_INFO (("Executing _OSI reserved method"));
 
     /* Setup input argument */
 
@@ -471,7 +542,7 @@ ExecuteOSI (void)
     {
         AcpiOsPrintf ("Return value from _OSI method too small, %.8X\n",
             ReturnValue.Length);
-        return;
+        goto ErrorExit;
     }
 
     /* Expect an integer return value from execution of _OSI */
@@ -482,40 +553,67 @@ ExecuteOSI (void)
         AcpiOsPrintf ("Invalid return type from _OSI, %.2X\n", Object->Type);
     }
 
-    ACPI_INFO ((AE_INFO, "_OSI returned 0x%8.8X", (UINT32) Object->Integer.Value));
-    AcpiOsFree (Object);
-    return;
+    ACPI_INFO (("_OSI returned 0x%8.8X",
+        (UINT32) Object->Integer.Value));
+
+
+ErrorExit:
+
+    /* Free a buffer created via ACPI_ALLOCATE_BUFFER */
+
+    AcpiOsFree (ReturnValue.Pointer);
 }
 
 
 /******************************************************************************
  *
- * OSL support (only needed to link to the windows OSL)
+ * Execute an actual control method in the DSDT (MAIN)
  *
  *****************************************************************************/
 
-FILE    *AcpiGbl_DebugFile;
-
-ACPI_PHYSICAL_ADDRESS
-AeLocalGetRootPointer (
-    void)
+static void
+ExecuteMAIN (void)
 {
+    ACPI_STATUS             Status;
+    ACPI_OBJECT_LIST        ArgList;
+    ACPI_OBJECT             Arg[1];
+    ACPI_BUFFER             ReturnValue;
+    ACPI_OBJECT             *Object;
 
-    return (0);
-}
 
-ACPI_THREAD_ID
-AcpiOsGetThreadId (
-    void)
-{
-    return (0xFFFF);
-}
+    ACPI_INFO (("Executing MAIN method"));
 
-ACPI_STATUS
-AcpiOsExecute (
-    ACPI_EXECUTE_TYPE       Type,
-    ACPI_OSD_EXEC_CALLBACK  Function,
-    void                    *Context)
-{
-    return (AE_SUPPORT);
+    /* Setup input argument */
+
+    ArgList.Count = 1;
+    ArgList.Pointer = Arg;
+
+    Arg[0].Type = ACPI_TYPE_STRING;
+    Arg[0].String.Pointer = "Method [MAIN] is executing";
+    Arg[0].String.Length = strlen (Arg[0].String.Pointer);
+
+    /* Ask ACPICA to allocate space for the return object */
+
+    ReturnValue.Length = ACPI_ALLOCATE_BUFFER;
+
+    Status = AcpiEvaluateObject (NULL, "\\MAIN", &ArgList, &ReturnValue);
+    if (ACPI_FAILURE (Status))
+    {
+        ACPI_EXCEPTION ((AE_INFO, Status, "While executing MAIN"));
+        return;
+    }
+
+    if (ReturnValue.Pointer)
+    {
+        /* Obtain and validate the returned ACPI_OBJECT */
+
+        Object = ReturnValue.Pointer;
+        if (Object->Type == ACPI_TYPE_STRING)
+        {
+            AcpiOsPrintf ("Method [MAIN] returned: \"%s\"\n",
+                Object->String.Pointer);
+        }
+
+        ACPI_FREE (ReturnValue.Pointer);
+    }
 }

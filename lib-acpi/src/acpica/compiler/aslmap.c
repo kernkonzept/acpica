@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -195,6 +195,7 @@ const ASL_MAPPING_ENTRY     AslKeywordMapping [] =
 {
 /*! [Begin] no source code translation (keep the table structure) */
 
+                                            /*  AML Opcode                  Value                           Flags               Btype */
 
 /* ACCESSAS */                  OP_TABLE_ENTRY (AML_INT_ACCESSFIELD_OP,     0,                              0,                  0),
 /* ACCESSATTRIB_BLOCK */        OP_TABLE_ENTRY (AML_BYTE_OP,                AML_FIELD_ATTRIB_BLOCK,         0,                  0),
@@ -294,7 +295,7 @@ const ASL_MAPPING_ENTRY     AslKeywordMapping [] =
 /* EXTENDEDIO */                OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
 /* EXTENDEDMEMORY */            OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
 /* EXTENDEDSPACE */             OP_TABLE_ENTRY (AML_RAW_DATA_QWORD,         0,                              0,                  ACPI_BTYPE_INTEGER),
-/* EXTERNAL */                  OP_TABLE_ENTRY (AML_DEFAULT_ARG_OP,         0,                              0,                  0),
+/* EXTERNAL */                  OP_TABLE_ENTRY (AML_EXTERNAL_OP,            0,                              0,                  0),
 /* FATAL */                     OP_TABLE_ENTRY (AML_FATAL_OP,               0,                              0,                  0),
 /* FIELD */                     OP_TABLE_ENTRY (AML_FIELD_OP,               0,                              NODE_AML_PACKAGE,   0),
 /* FINDSETLEFTBIT */            OP_TABLE_ENTRY (AML_FIND_SET_LEFT_BIT_OP,   0,                              0,                  ACPI_BTYPE_INTEGER),
@@ -313,7 +314,7 @@ const ASL_MAPPING_ENTRY     AslKeywordMapping [] =
 /* INCLUDE */                   OP_TABLE_ENTRY (AML_DEFAULT_ARG_OP,         0,                              0,                  0),
 /* INCLUDE_END */               OP_TABLE_ENTRY (AML_DEFAULT_ARG_OP,         0,                              0,                  0),
 /* INCREMENT */                 OP_TABLE_ENTRY (AML_INCREMENT_OP,           0,                              0,                  ACPI_BTYPE_INTEGER),
-/* INDEX */                     OP_TABLE_ENTRY (AML_INDEX_OP,               0,                              0,                  ACPI_BTYPE_REFERENCE),
+/* INDEX */                     OP_TABLE_ENTRY (AML_INDEX_OP,               0,                              0,                  ACPI_BTYPE_REFERENCE_OBJECT),
 /* INDEXFIELD */                OP_TABLE_ENTRY (AML_INDEX_FIELD_OP,         0,                              NODE_AML_PACKAGE,   0),
 /* INTEGER */                   OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  ACPI_BTYPE_INTEGER),
 /* INTERRUPT */                 OP_TABLE_ENTRY (AML_DEFAULT_ARG_OP,         0,                              0,                  0),
@@ -384,23 +385,23 @@ const ASL_MAPPING_ENTRY     AslKeywordMapping [] =
 /* NOR */                       OP_TABLE_ENTRY (AML_BIT_NOR_OP,             0,                              0,                  ACPI_BTYPE_INTEGER),
 /* NOT */                       OP_TABLE_ENTRY (AML_BIT_NOT_OP,             0,                              0,                  ACPI_BTYPE_INTEGER),
 /* NOTIFY */                    OP_TABLE_ENTRY (AML_NOTIFY_OP,              0,                              0,                  0),
-/* OBJECTTYPE */                OP_TABLE_ENTRY (AML_TYPE_OP,                0,                              0,                  ACPI_BTYPE_INTEGER),
-/* OBJECTTYPE_BFF */            OP_TABLE_ENTRY (AML_BYTE_OP,                ACPI_TYPE_BUFFER_FIELD,         0,                  0),
-/* OBJECTTYPE_BUF */            OP_TABLE_ENTRY (AML_BYTE_OP,                ACPI_TYPE_BUFFER,               0,                  0),
-/* OBJECTTYPE_DDB */            OP_TABLE_ENTRY (AML_BYTE_OP,                ACPI_TYPE_DDB_HANDLE,           0,                  0),
-/* OBJECTTYPE_DEV */            OP_TABLE_ENTRY (AML_BYTE_OP,                ACPI_TYPE_DEVICE,               0,                  0),
-/* OBJECTTYPE_EVT */            OP_TABLE_ENTRY (AML_BYTE_OP,                ACPI_TYPE_EVENT,                0,                  0),
-/* OBJECTTYPE_FLD */            OP_TABLE_ENTRY (AML_BYTE_OP,                ACPI_TYPE_FIELD_UNIT,           0,                  0),
-/* OBJECTTYPE_INT */            OP_TABLE_ENTRY (AML_BYTE_OP,                ACPI_TYPE_INTEGER,              0,                  0),
-/* OBJECTTYPE_MTH */            OP_TABLE_ENTRY (AML_BYTE_OP,                ACPI_TYPE_METHOD,               0,                  0),
-/* OBJECTTYPE_MTX */            OP_TABLE_ENTRY (AML_BYTE_OP,                ACPI_TYPE_MUTEX,                0,                  0),
-/* OBJECTTYPE_OPR */            OP_TABLE_ENTRY (AML_BYTE_OP,                ACPI_TYPE_REGION,               0,                  0),
-/* OBJECTTYPE_PKG */            OP_TABLE_ENTRY (AML_BYTE_OP,                ACPI_TYPE_PACKAGE,              0,                  0),
-/* OBJECTTYPE_POW */            OP_TABLE_ENTRY (AML_BYTE_OP,                ACPI_TYPE_POWER,                0,                  0),
-/* OBJECTTYPE_PRO */            OP_TABLE_ENTRY (AML_BYTE_OP,                ACPI_TYPE_PROCESSOR,            0,                  0),
-/* OBJECTTYPE_STR */            OP_TABLE_ENTRY (AML_BYTE_OP,                ACPI_TYPE_STRING,               0,                  0),
-/* OBJECTTYPE_THZ */            OP_TABLE_ENTRY (AML_BYTE_OP,                ACPI_TYPE_THERMAL,              0,                  0),
-/* OBJECTTYPE_UNK */            OP_TABLE_ENTRY (AML_BYTE_OP,                ACPI_TYPE_ANY,                  0,                  0),
+/* OBJECTTYPE */                OP_TABLE_ENTRY (AML_OBJECT_TYPE_OP,         0,                              0,                  ACPI_BTYPE_INTEGER),
+/* OBJECTTYPE_BFF */            OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_TYPE_BUFFER_FIELD,         0,                  0),
+/* OBJECTTYPE_BUF */            OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_TYPE_BUFFER,               0,                  0),
+/* OBJECTTYPE_DDB */            OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_TYPE_DDB_HANDLE,           0,                  0),
+/* OBJECTTYPE_DEV */            OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_TYPE_DEVICE,               0,                  0),
+/* OBJECTTYPE_EVT */            OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_TYPE_EVENT,                0,                  0),
+/* OBJECTTYPE_FLD */            OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_TYPE_FIELD_UNIT,           0,                  0),
+/* OBJECTTYPE_INT */            OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_TYPE_INTEGER,              0,                  0),
+/* OBJECTTYPE_MTH */            OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_TYPE_METHOD,               0,                  0),
+/* OBJECTTYPE_MTX */            OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_TYPE_MUTEX,                0,                  0),
+/* OBJECTTYPE_OPR */            OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_TYPE_REGION,               0,                  0),
+/* OBJECTTYPE_PKG */            OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_TYPE_PACKAGE,              0,                  0),
+/* OBJECTTYPE_POW */            OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_TYPE_POWER,                0,                  0),
+/* OBJECTTYPE_PRO */            OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_TYPE_PROCESSOR,            0,                  0),
+/* OBJECTTYPE_STR */            OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_TYPE_STRING,               0,                  0),
+/* OBJECTTYPE_THZ */            OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_TYPE_THERMAL,              0,                  0),
+/* OBJECTTYPE_UNK */            OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_TYPE_ANY,                  0,                  0),
 /* OFFSET */                    OP_TABLE_ENTRY (AML_INT_RESERVEDFIELD_OP,   0,                              0,                  0),
 /* ONE */                       OP_TABLE_ENTRY (AML_ONE_OP,                 0,                              0,                  ACPI_BTYPE_INTEGER),
 /* ONES */                      OP_TABLE_ENTRY (AML_ONES_OP,                0,                              0,                  ACPI_BTYPE_INTEGER),
@@ -429,7 +430,7 @@ const ASL_MAPPING_ENTRY     AslKeywordMapping [] =
 /* RAW_DATA */                  OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
 /* READWRITETYPE_BOTH */        OP_TABLE_ENTRY (AML_BYTE_OP,                1,                              0,                  0),
 /* READWRITETYPE_READONLY */    OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
-/* REFOF */                     OP_TABLE_ENTRY (AML_REF_OF_OP,              0,                              0,                  ACPI_BTYPE_REFERENCE),
+/* REFOF */                     OP_TABLE_ENTRY (AML_REF_OF_OP,              0,                              0,                  ACPI_BTYPE_REFERENCE_OBJECT),
 /* REGIONSPACE_CMOS */          OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_ADR_SPACE_CMOS,            0,                  0),
 /* REGIONSPACE_EC */            OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_ADR_SPACE_EC,              0,                  0),
 /* REGIONSPACE_FFIXEDHW */      OP_TABLE_ENTRY (AML_RAW_DATA_BYTE,          ACPI_ADR_SPACE_FIXED_HARDWARE,  0,                  0),
@@ -518,7 +519,39 @@ const ASL_MAPPING_ENTRY     AslKeywordMapping [] =
 /* XFERTYPE_16 */               OP_TABLE_ENTRY (AML_BYTE_OP,                2,                              0,                  0),
 /* XOR */                       OP_TABLE_ENTRY (AML_BIT_XOR_OP,             0,                              0,                  ACPI_BTYPE_INTEGER),
 /* ZERO */                      OP_TABLE_ENTRY (AML_ZERO_OP,                0,                              0,                  ACPI_BTYPE_INTEGER),
-
+/* TOPLD */                     OP_TABLE_ENTRY (AML_DWORD_OP,               0,                              NODE_AML_PACKAGE,   ACPI_BTYPE_INTEGER),
+/* XFERSIZE_128 */              OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* REVISION */                  OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* IGNORECOLOR */               OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* RED */                       OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* GREEN */                     OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* BLUE */                      OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* WIDTH */                     OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* HEIGHT */                    OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* USERVISIBLE */               OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* DOCK */                      OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* LID */                       OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* PANEL */                     OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* VERTICALPOSITION */          OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* HORIZONTALPOSITION */        OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* SHAPE */                     OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* GROUPORIENTATION */          OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* GROUPTOKEN */                OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* GROUPPOSITION */             OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* BAY */                       OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* EJECTABLE */                 OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* EJECTREQUIRED */             OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* CABINETNUMBER */             OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* CARDCAGENUMBER */            OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* REFERENCE */                 OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* ROTATION */                  OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* ORDER */                     OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* RESERVED */                  OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* VERTICALOFFSET */            OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* HORIZONTALOFFSET */          OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* PRINTF */                    OP_TABLE_ENTRY (AML_STORE_OP,               0,                              0,                  ACPI_BTYPE_DATA_REFERENCE),
+/* FPRINTF */                   OP_TABLE_ENTRY (AML_STORE_OP,               0,                              0,                  ACPI_BTYPE_DATA_REFERENCE),
+/* ASLCODE  */                  OP_TABLE_ENTRY (0,                          0,                              0,                  0)
 /*! [End] no source code translation !*/
 
 };

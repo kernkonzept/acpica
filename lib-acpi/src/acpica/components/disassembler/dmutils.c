@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -113,7 +113,6 @@
  *
  *****************************************************************************/
 
-
 #include "acpi.h"
 #include "accommon.h"
 #include "amlcode.h"
@@ -123,7 +122,6 @@
 #include <acnamesp.h>
 #endif
 
-#ifdef ACPI_DISASSEMBLER
 
 #define _COMPONENT          ACPI_CA_DEBUGGER
         ACPI_MODULE_NAME    ("dmutils")
@@ -301,7 +299,7 @@ AcpiDmIndent (
         return;
     }
 
-    AcpiOsPrintf ("%*.s", ACPI_MUL_4 (Level), " ");
+    AcpiOsPrintf ("%*.s", (Level * 4), " ");
 }
 
 
@@ -329,6 +327,13 @@ AcpiDmCommaIfListMember (
 
     if (AcpiDmListType (Op->Common.Parent) & BLOCK_COMMA_LIST)
     {
+        /* Exit if Target has been marked IGNORE */
+
+        if (Op->Common.Next->Common.DisasmFlags & ACPI_PARSEOP_IGNORE)
+        {
+            return (FALSE);
+        }
+
         /* Check for a NULL target operand */
 
         if ((Op->Common.Next->Common.AmlOpcode == AML_INT_NAMEPATH_OP) &&
@@ -352,7 +357,13 @@ AcpiDmCommaIfListMember (
             return (FALSE);
         }
 
-        AcpiOsPrintf (", ");
+        /* Emit comma only if this is not a C-style operator */
+
+        if (!Op->Common.OperatorSymbol)
+        {
+            AcpiOsPrintf (", ");
+        }
+
         return (TRUE);
     }
 
@@ -389,5 +400,3 @@ AcpiDmCommaIfFieldMember (
         AcpiOsPrintf (", ");
     }
 }
-
-#endif

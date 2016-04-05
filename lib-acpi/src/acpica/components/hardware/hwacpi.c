@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -113,8 +113,6 @@
  *
  *****************************************************************************/
 
-#define __HWACPI_C__
-
 #include "acpi.h"
 #include "accommon.h"
 
@@ -146,6 +144,14 @@ AcpiHwSetMode (
 
 
     ACPI_FUNCTION_TRACE (HwSetMode);
+
+
+    /* If the Hardware Reduced flag is set, machine is always in acpi mode */
+
+    if (AcpiGbl_ReducedHardware)
+    {
+        return_ACPI_STATUS (AE_OK);
+    }
 
     /*
      * ACPI 2.0 clarified that if SMI_CMD in FADT is zero,
@@ -179,23 +185,23 @@ AcpiHwSetMode (
         /* BIOS should have disabled ALL fixed and GP events */
 
         Status = AcpiHwWritePort (AcpiGbl_FADT.SmiCommand,
-                        (UINT32) AcpiGbl_FADT.AcpiEnable, 8);
+            (UINT32) AcpiGbl_FADT.AcpiEnable, 8);
         ACPI_DEBUG_PRINT ((ACPI_DB_INFO, "Attempting to enable ACPI mode\n"));
         break;
 
     case ACPI_SYS_MODE_LEGACY:
-
         /*
          * BIOS should clear all fixed status bits and restore fixed event
          * enable bits to default
          */
         Status = AcpiHwWritePort (AcpiGbl_FADT.SmiCommand,
-                    (UINT32) AcpiGbl_FADT.AcpiDisable, 8);
+            (UINT32) AcpiGbl_FADT.AcpiDisable, 8);
         ACPI_DEBUG_PRINT ((ACPI_DB_INFO,
-                    "Attempting to enable Legacy (non-ACPI) mode\n"));
+            "Attempting to enable Legacy (non-ACPI) mode\n"));
         break;
 
     default:
+
         return_ACPI_STATUS (AE_BAD_PARAMETER);
     }
 
@@ -213,13 +219,13 @@ AcpiHwSetMode (
     Retry = 3000;
     while (Retry)
     {
-        if (AcpiHwGetMode() == Mode)
+        if (AcpiHwGetMode () == Mode)
         {
-            ACPI_DEBUG_PRINT ((ACPI_DB_INFO, "Mode %X successfully enabled\n",
-                Mode));
+            ACPI_DEBUG_PRINT ((ACPI_DB_INFO,
+                "Mode %X successfully enabled\n", Mode));
             return_ACPI_STATUS (AE_OK);
         }
-        AcpiOsStall(1000);
+        AcpiOsStall (ACPI_USEC_PER_MSEC);
         Retry--;
     }
 
@@ -251,6 +257,13 @@ AcpiHwGetMode (
 
     ACPI_FUNCTION_TRACE (HwGetMode);
 
+
+    /* If the Hardware Reduced flag is set, machine is always in acpi mode */
+
+    if (AcpiGbl_ReducedHardware)
+    {
+        return_UINT32 (ACPI_SYS_MODE_ACPI);
+    }
 
     /*
      * ACPI 2.0 clarified that if SMI_CMD in FADT is zero,

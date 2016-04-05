@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -114,8 +114,6 @@
  *
  *****************************************************************************/
 
-#define __NSUTILS_C__
-
 #include "acpi.h"
 #include "accommon.h"
 #include "acnamesp.h"
@@ -125,10 +123,6 @@
         ACPI_MODULE_NAME    ("nsutils")
 
 /* Local prototypes */
-
-static BOOLEAN
-AcpiNsValidPathSeparator (
-    char                    Sep);
 
 #ifdef ACPI_OBSOLETE_FUNCTIONS
 ACPI_NAME
@@ -168,7 +162,7 @@ AcpiNsPrintNodePathname (
 
     Buffer.Length = ACPI_ALLOCATE_LOCAL_BUFFER;
 
-    Status = AcpiNsHandleToPathname (Node, &Buffer);
+    Status = AcpiNsHandleToPathname (Node, &Buffer, TRUE);
     if (ACPI_SUCCESS (Status))
     {
         if (Message)
@@ -179,48 +173,6 @@ AcpiNsPrintNodePathname (
         AcpiOsPrintf ("[%s] (Node %p)", (char *) Buffer.Pointer, Node);
         ACPI_FREE (Buffer.Pointer);
     }
-}
-
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiNsValidRootPrefix
- *
- * PARAMETERS:  Prefix          - Character to be checked
- *
- * RETURN:      TRUE if a valid prefix
- *
- * DESCRIPTION: Check if a character is a valid ACPI Root prefix
- *
- ******************************************************************************/
-
-BOOLEAN
-AcpiNsValidRootPrefix (
-    char                    Prefix)
-{
-
-    return ((BOOLEAN) (Prefix == '\\'));
-}
-
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiNsValidPathSeparator
- *
- * PARAMETERS:  Sep         - Character to be checked
- *
- * RETURN:      TRUE if a valid path separator
- *
- * DESCRIPTION: Check if a character is a valid ACPI path separator
- *
- ******************************************************************************/
-
-static BOOLEAN
-AcpiNsValidPathSeparator (
-    char                    Sep)
-{
-
-    return ((BOOLEAN) (Sep == '.'));
 }
 
 
@@ -246,10 +198,10 @@ AcpiNsGetType (
     if (!Node)
     {
         ACPI_WARNING ((AE_INFO, "Null Node parameter"));
-        return_UINT32 (ACPI_TYPE_ANY);
+        return_UINT8 (ACPI_TYPE_ANY);
     }
 
-    return_UINT32 ((ACPI_OBJECT_TYPE) Node->Type);
+    return_UINT8 (Node->Type);
 }
 
 
@@ -281,7 +233,7 @@ AcpiNsLocal (
         return_UINT32 (ACPI_NS_NORMAL);
     }
 
-    return_UINT32 ((UINT32) AcpiGbl_NsProperties[Type] & ACPI_NS_LOCAL);
+    return_UINT32 (AcpiGbl_NsProperties[Type] & ACPI_NS_LOCAL);
 }
 
 
@@ -316,20 +268,21 @@ AcpiNsGetInternalNameLength (
     Info->FullyQualified = FALSE;
 
     /*
-     * For the internal name, the required length is 4 bytes per segment, plus
-     * 1 each for RootPrefix, MultiNamePrefixOp, segment count, trailing null
-     * (which is not really needed, but no there's harm in putting it there)
+     * For the internal name, the required length is 4 bytes per segment,
+     * plus 1 each for RootPrefix, MultiNamePrefixOp, segment count,
+     * trailing null (which is not really needed, but no there's harm in
+     * putting it there)
      *
      * strlen() + 1 covers the first NameSeg, which has no path separator
      */
-    if (AcpiNsValidRootPrefix (*NextExternalChar))
+    if (ACPI_IS_ROOT_PREFIX (*NextExternalChar))
     {
         Info->FullyQualified = TRUE;
         NextExternalChar++;
 
         /* Skip redundant RootPrefix, like \\_SB.PCI0.SBRG.EC0 */
 
-        while (AcpiNsValidRootPrefix (*NextExternalChar))
+        while (ACPI_IS_ROOT_PREFIX (*NextExternalChar))
         {
             NextExternalChar++;
         }
@@ -338,7 +291,7 @@ AcpiNsGetInternalNameLength (
     {
         /* Handle Carat prefixes */
 
-        while (*NextExternalChar == '^')
+        while (ACPI_IS_PARENT_PREFIX (*NextExternalChar))
         {
             Info->NumCarats++;
             NextExternalChar++;
@@ -355,7 +308,7 @@ AcpiNsGetInternalNameLength (
         Info->NumSegments = 1;
         for (i = 0; NextExternalChar[i]; i++)
         {
-            if (AcpiNsValidPathSeparator (NextExternalChar[i]))
+            if (ACPI_IS_PATH_SEPARATOR (NextExternalChar[i]))
             {
                 Info->NumSegments++;
             }
@@ -363,7 +316,7 @@ AcpiNsGetInternalNameLength (
     }
 
     Info->Length = (ACPI_NAME_SIZE * Info->NumSegments) +
-                    4 + Info->NumCarats;
+        4 + Info->NumCarats;
 
     Info->NextExternalChar = NextExternalChar;
 }
@@ -400,7 +353,7 @@ AcpiNsBuildInternalName (
 
     if (Info->FullyQualified)
     {
-        InternalName[0] = '\\';
+        InternalName[0] = AML_ROOT_PREFIX;
 
         if (NumSegments <= 1)
         {
@@ -429,7 +382,7 @@ AcpiNsBuildInternalName (
         {
             for (i = 0; i < Info->NumCarats; i++)
             {
-                InternalName[i] = '^';
+                InternalName[i] = AML_PARENT_PREFIX;
             }
         }
 
@@ -456,7 +409,7 @@ AcpiNsBuildInternalName (
     {
         for (i = 0; i < ACPI_NAME_SIZE; i++)
         {
-            if (AcpiNsValidPathSeparator (*ExternalName) ||
+            if (ACPI_IS_PATH_SEPARATOR (*ExternalName) ||
                (*ExternalName == 0))
             {
                 /* Pad the segment with underscore(s) if segment is short */
@@ -467,14 +420,14 @@ AcpiNsBuildInternalName (
             {
                 /* Convert the character to uppercase and save it */
 
-                Result[i] = (char) ACPI_TOUPPER ((int) *ExternalName);
+                Result[i] = (char) toupper ((int) *ExternalName);
                 ExternalName++;
             }
         }
 
         /* Now we must have a path separator, or the pathname is bad */
 
-        if (!AcpiNsValidPathSeparator (*ExternalName) &&
+        if (!ACPI_IS_PATH_SEPARATOR (*ExternalName) &&
             (*ExternalName != 0))
         {
             return_ACPI_STATUS (AE_BAD_PATHNAME);
@@ -614,14 +567,16 @@ AcpiNsExternalizeName (
 
     switch (InternalName[0])
     {
-    case '\\':
+    case AML_ROOT_PREFIX:
+
         PrefixLength = 1;
         break;
 
-    case '^':
+    case AML_PARENT_PREFIX:
+
         for (i = 0; i < InternalNameLength; i++)
         {
-            if (InternalName[i] == '^')
+            if (ACPI_IS_PARENT_PREFIX (InternalName[i]))
             {
                 PrefixLength = i + 1;
             }
@@ -639,6 +594,7 @@ AcpiNsExternalizeName (
         break;
 
     default:
+
         break;
     }
 
@@ -691,7 +647,7 @@ AcpiNsExternalizeName (
      * punctuation ('.') between object names, plus the NULL terminator.
      */
     RequiredLength = PrefixLength + (4 * NumSegments) +
-                        ((NumSegments > 0) ? (NumSegments - 1) : 0) + 1;
+        ((NumSegments > 0) ? (NumSegments - 1) : 0) + 1;
 
     /*
      * Check to see if we're still in bounds. If not, there's a problem
@@ -729,7 +685,8 @@ AcpiNsExternalizeName (
 
             /* Copy and validate the 4-char name segment */
 
-            ACPI_MOVE_NAME (&(*ConvertedName)[j], &InternalName[NamesIndex]);
+            ACPI_MOVE_NAME (&(*ConvertedName)[j],
+                &InternalName[NamesIndex]);
             AcpiUtRepairName (&(*ConvertedName)[j]);
 
             j += ACPI_NAME_SIZE;
@@ -808,26 +765,46 @@ void
 AcpiNsTerminate (
     void)
 {
-    ACPI_OPERAND_OBJECT     *ObjDesc;
+    ACPI_STATUS             Status;
 
 
     ACPI_FUNCTION_TRACE (NsTerminate);
 
 
+#ifdef ACPI_EXEC_APP
+    {
+        ACPI_OPERAND_OBJECT     *Prev;
+        ACPI_OPERAND_OBJECT     *Next;
+
+        /* Delete any module-level code blocks */
+
+        Next = AcpiGbl_ModuleCodeList;
+        while (Next)
+        {
+            Prev = Next;
+            Next = Next->Method.Mutex;
+            Prev->Method.Mutex = NULL; /* Clear the Mutex (cheated) field */
+            AcpiUtRemoveReference (Prev);
+        }
+    }
+#endif
+
     /*
-     * 1) Free the entire namespace -- all nodes and objects
-     *
-     * Delete all object descriptors attached to namepsace nodes
+     * Free the entire namespace -- all nodes and all objects
+     * attached to the nodes
      */
     AcpiNsDeleteNamespaceSubtree (AcpiGbl_RootNode);
 
-    /* Detach any objects attached to the root */
+    /* Delete any objects attached to the root node */
 
-    ObjDesc = AcpiNsGetAttachedObject (AcpiGbl_RootNode);
-    if (ObjDesc)
+    Status = AcpiUtAcquireMutex (ACPI_MTX_NAMESPACE);
+    if (ACPI_FAILURE (Status))
     {
-        AcpiNsDetachObject (AcpiGbl_RootNode);
+        return_VOID;
     }
+
+    AcpiNsDeleteNode (AcpiGbl_RootNode);
+    (void) AcpiUtReleaseMutex (ACPI_MTX_NAMESPACE);
 
     ACPI_DEBUG_PRINT ((ACPI_DB_INFO, "Namespace freed\n"));
     return_VOID;
@@ -901,6 +878,8 @@ AcpiNsGetNode (
     ACPI_FUNCTION_TRACE_PTR (NsGetNode, ACPI_CAST_PTR (char, Pathname));
 
 
+    /* Simplest case is a null pathname */
+
     if (!Pathname)
     {
         *ReturnNode = PrefixNode;
@@ -908,6 +887,15 @@ AcpiNsGetNode (
         {
             *ReturnNode = AcpiGbl_RootNode;
         }
+
+        return_ACPI_STATUS (AE_OK);
+    }
+
+    /* Quick check for a reference to the root */
+
+    if (ACPI_IS_ROOT_PREFIX (Pathname[0]) && (!Pathname[1]))
+    {
+        *ReturnNode = AcpiGbl_RootNode;
         return_ACPI_STATUS (AE_OK);
     }
 
@@ -934,12 +922,12 @@ AcpiNsGetNode (
     /* Lookup the name in the namespace */
 
     Status = AcpiNsLookup (&ScopeInfo, InternalPath, ACPI_TYPE_ANY,
-                ACPI_IMODE_EXECUTE, (Flags | ACPI_NS_DONT_OPEN_SCOPE),
-                NULL, ReturnNode);
+        ACPI_IMODE_EXECUTE, (Flags | ACPI_NS_DONT_OPEN_SCOPE),
+        NULL, ReturnNode);
     if (ACPI_FAILURE (Status))
     {
         ACPI_DEBUG_PRINT ((ACPI_DB_EXEC, "%s, %s\n",
-                Pathname, AcpiFormatException (Status)));
+            Pathname, AcpiFormatException (Status)));
     }
 
     (void) AcpiUtReleaseMutex (ACPI_MTX_NAMESPACE);

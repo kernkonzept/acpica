@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -113,9 +113,6 @@
  *
  *****************************************************************************/
 
-
-#define __UTMUTEX_C__
-
 #include "acpi.h"
 #include "accommon.h"
 
@@ -168,7 +165,7 @@ AcpiUtMutexInitialize (
         }
     }
 
-    /* Create the spinlocks for use at interrupt level */
+    /* Create the spinlocks for use at interrupt level or for speed */
 
     Status = AcpiOsCreateLock (&AcpiGbl_GpeLock);
     if (ACPI_FAILURE (Status))
@@ -182,7 +179,14 @@ AcpiUtMutexInitialize (
         return_ACPI_STATUS (Status);
     }
 
+    Status = AcpiOsCreateLock (&AcpiGbl_ReferenceCountLock);
+    if (ACPI_FAILURE (Status))
+    {
+        return_ACPI_STATUS (Status);
+    }
+
     /* Mutex for _OSI support */
+
     Status = AcpiOsCreateMutex (&AcpiGbl_OsiMutex);
     if (ACPI_FAILURE (Status))
     {
@@ -192,6 +196,24 @@ AcpiUtMutexInitialize (
     /* Create the reader/writer lock for namespace access */
 
     Status = AcpiUtCreateRwLock (&AcpiGbl_NamespaceRwLock);
+    if (ACPI_FAILURE (Status))
+    {
+        return_ACPI_STATUS (Status);
+    }
+
+#ifdef ACPI_DEBUGGER
+
+    /* Debugger Support */
+
+    Status = AcpiOsCreateMutex (&AcpiGbl_DbCommandReady);
+    if (ACPI_FAILURE (Status))
+    {
+        return_ACPI_STATUS (Status);
+    }
+
+    Status = AcpiOsCreateMutex (&AcpiGbl_DbCommandComplete);
+#endif
+
     return_ACPI_STATUS (Status);
 }
 
@@ -232,10 +254,17 @@ AcpiUtMutexTerminate (
 
     AcpiOsDeleteLock (AcpiGbl_GpeLock);
     AcpiOsDeleteLock (AcpiGbl_HardwareLock);
+    AcpiOsDeleteLock (AcpiGbl_ReferenceCountLock);
 
     /* Delete the reader/writer lock */
 
     AcpiUtDeleteRwLock (&AcpiGbl_NamespaceRwLock);
+
+#ifdef ACPI_DEBUGGER
+    AcpiOsDeleteMutex (AcpiGbl_DbCommandReady);
+    AcpiOsDeleteMutex (AcpiGbl_DbCommandComplete);
+#endif
+
     return_VOID;
 }
 
@@ -372,11 +401,12 @@ AcpiUtAcquireMutex (
         "Thread %u attempting to acquire Mutex [%s]\n",
         (UINT32) ThisThreadId, AcpiUtGetMutexName (MutexId)));
 
-    Status = AcpiOsAcquireMutex (AcpiGbl_MutexInfo[MutexId].Mutex,
-                ACPI_WAIT_FOREVER);
+    Status = AcpiOsAcquireMutex (
+        AcpiGbl_MutexInfo[MutexId].Mutex, ACPI_WAIT_FOREVER);
     if (ACPI_SUCCESS (Status))
     {
-        ACPI_DEBUG_PRINT ((ACPI_DB_MUTEX, "Thread %u acquired Mutex [%s]\n",
+        ACPI_DEBUG_PRINT ((ACPI_DB_MUTEX,
+            "Thread %u acquired Mutex [%s]\n",
             (UINT32) ThisThreadId, AcpiUtGetMutexName (MutexId)));
 
         AcpiGbl_MutexInfo[MutexId].UseCount++;

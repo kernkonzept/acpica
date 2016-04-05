@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -113,7 +113,6 @@
  *
  *****************************************************************************/
 
-
 #include "aslcompiler.h"
 #include "aslcompiler.y.h"
 #include <string.h>
@@ -140,8 +139,8 @@ AnIsInternalMethod (
     ACPI_PARSE_OBJECT       *Op)
 {
 
-    if ((!ACPI_STRCMP (Op->Asl.ExternalName, "\\_OSI")) ||
-        (!ACPI_STRCMP (Op->Asl.ExternalName, "_OSI")))
+    if ((!strcmp (Op->Asl.ExternalName, "\\_OSI")) ||
+        (!strcmp (Op->Asl.ExternalName, "_OSI")))
     {
         return (TRUE);
     }
@@ -167,8 +166,8 @@ AnGetInternalMethodReturnType (
     ACPI_PARSE_OBJECT       *Op)
 {
 
-    if ((!ACPI_STRCMP (Op->Asl.ExternalName, "\\_OSI")) ||
-        (!ACPI_STRCMP (Op->Asl.ExternalName, "_OSI")))
+    if ((!strcmp (Op->Asl.ExternalName, "\\_OSI")) ||
+        (!strcmp (Op->Asl.ExternalName, "_OSI")))
     {
         return (ACPI_BTYPE_STRING);
     }
@@ -212,8 +211,7 @@ AnCheckId (
     Length = strlen (Op->Asl.Value.String);
     if (!Length)
     {
-        AslError (ASL_ERROR, ASL_MSG_NULL_STRING,
-            Op, NULL);
+        AslError (ASL_ERROR, ASL_MSG_NULL_STRING, Op, NULL);
         return;
     }
 
@@ -264,7 +262,7 @@ AnCheckId (
         return;
     }
 
-    /* _HID Length is valid (7 or 8), now check the prefix (first 3 or 4 chars) */
+    /* _HID Length is valid (7 or 8), now check prefix (first 3 or 4 chars) */
 
     if (Length == 7)
     {
@@ -304,8 +302,8 @@ AnCheckId (
     {
         if (!isxdigit ((int) Op->Asl.Value.String[i]))
         {
-         AslError (ASL_ERROR, ASL_MSG_HID_SUFFIX,
-            Op, &Op->Asl.Value.String[i]);
+            AslError (ASL_ERROR, ASL_MSG_HID_SUFFIX,
+                Op, &Op->Asl.Value.String[i]);
             break;
         }
     }
@@ -382,6 +380,12 @@ AnCheckMethodReturnValue (
 
     Node = ArgOp->Asl.Node;
 
+    if (!Node)
+    {
+        /* No error message, this can happen and is OK */
+
+        return;
+    }
 
     /* Examine the parent op of this method */
 
@@ -396,7 +400,8 @@ AnCheckMethodReturnValue (
     {
         /* Method SOMETIMES returns a value, SOMETIMES not */
 
-        AslError (ASL_WARNING, ASL_MSG_SOME_NO_RETVAL, Op, Op->Asl.ExternalName);
+        AslError (ASL_WARNING, ASL_MSG_SOME_NO_RETVAL,
+            Op, Op->Asl.ExternalName);
     }
     else if (!(ThisNodeBtype & RequiredBtypes))
     {
@@ -453,6 +458,7 @@ AnIsResultUsed (
         return (TRUE);
 
     default:
+
         break;
     }
 
@@ -472,17 +478,19 @@ AnIsResultUsed (
         {
             return (TRUE);
         }
+
         return (FALSE);
 
     /* Not used if one of these is the parent */
 
     case PARSEOP_METHOD:
-    case PARSEOP_DEFINITIONBLOCK:
+    case PARSEOP_DEFINITION_BLOCK:
     case PARSEOP_ELSE:
 
         return (FALSE);
 
     default:
+
         /* Any other type of parent means that the result is used */
 
         return (TRUE);
@@ -533,7 +541,7 @@ ApCheckForGpeNameConflict (
 
     /* Verify 3rd/4th chars are a valid hex value */
 
-    GpeNumber = ACPI_STRTOUL (&Name[2], NULL, 16);
+    GpeNumber = strtoul (&Name[2], NULL, 16);
     if (GpeNumber == ACPI_UINT32_MAX)
     {
         return;
@@ -638,4 +646,52 @@ ApCheckRegMethod (
     /* No region found, issue warning */
 
     AslError (ASL_WARNING, ASL_MSG_NO_REGION, Op, NULL);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    ApFindNameInScope
+ *
+ * PARAMETERS:  Name                - Name to search for
+ *              Op                  - Current parse op
+ *
+ * RETURN:      TRUE if name found in the same scope as Op.
+ *
+ * DESCRIPTION: Determine if a name appears in the same scope as Op, as either
+ *              a Method() or a Name().
+ *
+ ******************************************************************************/
+
+BOOLEAN
+ApFindNameInScope (
+    char                    *Name,
+    ACPI_PARSE_OBJECT       *Op)
+{
+    ACPI_PARSE_OBJECT       *Next;
+    ACPI_PARSE_OBJECT       *Parent;
+
+
+    /* Get the start of the current scope */
+
+    Parent = Op->Asl.Parent;
+    Next = Parent->Asl.Child;
+
+    /* Search entire scope for a match to the name */
+
+    while (Next)
+    {
+        if ((Next->Asl.ParseOpcode == PARSEOP_METHOD) ||
+            (Next->Asl.ParseOpcode == PARSEOP_NAME))
+        {
+            if (ACPI_COMPARE_NAME (Name, Next->Asl.NameSeg))
+            {
+                return (TRUE);
+            }
+        }
+
+        Next = Next->Asl.Next;
+    }
+
+    return (FALSE);
 }

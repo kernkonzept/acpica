@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -113,16 +113,12 @@
  *
  *****************************************************************************/
 
-
 #include "acpi.h"
 #include "accommon.h"
 #include "acparser.h"
 #include "amlcode.h"
-#include "acdisasm.h"
 #include "acdebug.h"
 
-
-#ifdef ACPI_DISASSEMBLER
 
 #define _COMPONENT          ACPI_CA_DEBUGGER
         ACPI_MODULE_NAME    ("dmwalk")
@@ -190,10 +186,11 @@ AcpiDmDisassemble (
         return;
     }
 
-    Info.Flags = 0;
-    Info.Level = 0;
-    Info.Count = 0;
+    memset (&Info, 0, sizeof (ACPI_OP_WALK_INFO));
     Info.WalkState = WalkState;
+    Info.StartAml = Op->Common.Aml - sizeof (ACPI_TABLE_HEADER);
+    Info.AmlOffset = Op->Common.Aml - Info.StartAml;
+
     AcpiDmWalkParseTree (Op, AcpiDmDescendingOp, AcpiDmAscendingOp, &Info);
     return;
 }
@@ -357,7 +354,9 @@ AcpiDmBlockType (
 
     case AML_BUFFER_OP:
 
-        if (Op->Common.DisasmOpcode == ACPI_DASM_UNICODE)
+        if ((Op->Common.DisasmOpcode == ACPI_DASM_UNICODE) ||
+            (Op->Common.DisasmOpcode == ACPI_DASM_UUID) ||
+            (Op->Common.DisasmOpcode == ACPI_DASM_PLD_METHOD))
         {
             return (BLOCK_NONE);
         }
@@ -372,6 +371,19 @@ AcpiDmBlockType (
     case AML_EVENT_OP:
 
         return (BLOCK_PAREN);
+
+    case AML_INT_METHODCALL_OP:
+
+        if (Op->Common.Parent &&
+            ((Op->Common.Parent->Common.AmlOpcode == AML_PACKAGE_OP) ||
+             (Op->Common.Parent->Common.AmlOpcode == AML_VAR_PACKAGE_OP)))
+        {
+            /* This is a reference to a method, not an invocation */
+
+            return (BLOCK_NONE);
+        }
+
+        /*lint -fallthrough */
 
     default:
 
@@ -470,13 +482,76 @@ AcpiDmDescendingOp (
     const ACPI_OPCODE_INFO  *OpInfo;
     UINT32                  Name;
     ACPI_PARSE_OBJECT       *NextOp;
+    ACPI_PARSE_OBJECT       *NextOp2;
+    UINT32                  AmlOffset;
 
+
+    OpInfo = AcpiPsGetOpcodeInfo (Op->Common.AmlOpcode);
+
+    /* Listing support to dump the AML code after the ASL statement */
+
+    if (AcpiGbl_DmOpt_Listing)
+    {
+        /* We only care about these classes of objects */
+
+        if ((OpInfo->Class == AML_CLASS_NAMED_OBJECT) ||
+            (OpInfo->Class == AML_CLASS_CONTROL) ||
+            (OpInfo->Class == AML_CLASS_CREATE) ||
+            ((OpInfo->Class == AML_CLASS_EXECUTE) && (!Op->Common.Next)))
+        {
+            if (AcpiGbl_DmOpt_Listing && Info->PreviousAml)
+            {
+                /* Dump the AML byte code for the previous Op */
+
+                if (Op->Common.Aml > Info->PreviousAml)
+                {
+                    AcpiOsPrintf ("\n");
+                    AcpiUtDumpBuffer (
+                        (Info->StartAml + Info->AmlOffset),
+                        (Op->Common.Aml - Info->PreviousAml),
+                        DB_BYTE_DISPLAY, Info->AmlOffset);
+                    AcpiOsPrintf ("\n");
+                }
+
+                Info->AmlOffset = (Op->Common.Aml - Info->StartAml);
+            }
+
+            Info->PreviousAml = Op->Common.Aml;
+        }
+    }
 
     if (Op->Common.DisasmFlags & ACPI_PARSEOP_IGNORE)
     {
         /* Ignore this op -- it was handled elsewhere */
 
         return (AE_CTRL_DEPTH);
+    }
+
+    if (Op->Common.AmlOpcode == AML_IF_OP)
+    {
+        NextOp = AcpiPsGetDepthNext (NULL, Op);
+        if (NextOp)
+        {
+            NextOp->Common.DisasmFlags |= ACPI_PARSEOP_PARAMLIST;
+
+            /*
+             * A Zero predicate indicates the possibility of one or more
+             * External() opcodes within the If() block.
+             */
+            if (NextOp->Common.AmlOpcode == AML_ZERO_OP)
+            {
+                NextOp2 = NextOp->Common.Next;
+
+                if (NextOp2 &&
+                    (NextOp2->Common.AmlOpcode == AML_EXTERNAL_OP))
+                {
+                    /* Ignore the If 0 block and all children */
+
+                    Op->Common.DisasmFlags |= ACPI_PARSEOP_IGNORE;
+                    return (AE_CTRL_DEPTH);
+                }
+            }
+        }
     }
 
     /* Level 0 is at the Definition Block level */
@@ -487,10 +562,15 @@ AcpiDmDescendingOp (
 
         if (Info->WalkState)
         {
-            VERBOSE_PRINT ((DB_FULL_OP_INFO,
-                (Info->WalkState->MethodNode ?
-                    Info->WalkState->MethodNode->Name.Ascii : "   "),
-                Op->Common.AmlOffset, (UINT32) Op->Common.AmlOpcode));
+            AmlOffset = (UINT32) ACPI_PTR_DIFF (Op->Common.Aml,
+                Info->WalkState->ParserState.AmlStart);
+            if (AcpiGbl_DmOpt_Verbose)
+            {
+                AcpiOsPrintf (DB_FULL_OP_INFO,
+                    (Info->WalkState->MethodNode ?
+                        Info->WalkState->MethodNode->Name.Ascii : "   "),
+                    AmlOffset, (UINT32) Op->Common.AmlOpcode);
+            }
         }
 
         if (Op->Common.AmlOpcode == AML_SCOPE_OP)
@@ -506,16 +586,41 @@ AcpiDmDescendingOp (
         }
     }
     else if ((AcpiDmBlockType (Op->Common.Parent) & BLOCK_BRACE) &&
-             (!(Op->Common.DisasmFlags & ACPI_PARSEOP_PARAMLIST)) &&
-             (Op->Common.AmlOpcode != AML_INT_BYTELIST_OP))
+         (!(Op->Common.DisasmFlags & ACPI_PARSEOP_PARAMLIST)) &&
+         (!(Op->Common.DisasmFlags & ACPI_PARSEOP_ELSEIF)) &&
+         (Op->Common.AmlOpcode != AML_INT_BYTELIST_OP))
     {
+        /*
+         * This is a first-level element of a term list,
+         * indent a new line
+         */
+        switch (Op->Common.AmlOpcode)
+        {
+        case AML_NOOP_OP:
             /*
-             * This is a first-level element of a term list,
-             * indent a new line
+             * Optionally just ignore this opcode. Some tables use
+             * NoOp opcodes for "padding" out packages that the BIOS
+             * changes dynamically. This can leave hundreds or
+             * thousands of NoOp opcodes that if disassembled,
+             * cannot be compiled because they are syntactically
+             * incorrect.
              */
+            if (AcpiGbl_IgnoreNoopOperator)
+            {
+                Op->Common.DisasmFlags |= ACPI_PARSEOP_IGNORE;
+                return (AE_OK);
+            }
+
+            /* Fallthrough */
+
+        default:
+
             AcpiDmIndent (Level);
-            Info->LastLevel = Level;
-            Info->Count = 0;
+            break;
+        }
+
+        Info->LastLevel = Level;
+        Info->Count = 0;
     }
 
     /*
@@ -525,11 +630,18 @@ AcpiDmDescendingOp (
      * keep track of the current column.
      */
     Info->Count++;
-    if (Info->Count /* +Info->LastLevel */ > 10)
+    if (Info->Count /* +Info->LastLevel */ > 12)
     {
         Info->Count = 0;
         AcpiOsPrintf ("\n");
         AcpiDmIndent (Info->LastLevel + 1);
+    }
+
+    /* If ASL+ is enabled, check for a C-style operator */
+
+    if (AcpiDmCheckForSymbolicOpcode (Op, Info))
+    {
+        return (AE_OK);
     }
 
     /* Print the opcode name */
@@ -549,8 +661,6 @@ AcpiDmDescendingOp (
     }
 
     /* Start the opcode argument list if necessary */
-
-    OpInfo = AcpiPsGetOpcodeInfo (Op->Common.AmlOpcode);
 
     if ((OpInfo->Flags & AML_HAS_ARGS) ||
         (Op->Common.AmlOpcode == AML_EVENT_OP))
@@ -591,7 +701,7 @@ AcpiDmDescendingOp (
 
                 if (Op->Common.AmlOpcode != AML_INT_NAMEDFIELD_OP)
                 {
-                    if (AcpiGbl_DbOpt_verbose)
+                    if (AcpiGbl_DmOpt_Verbose)
                     {
                         (void) AcpiPsDisplayObjectPathname (NULL, Op);
                     }
@@ -611,21 +721,18 @@ AcpiDmDescendingOp (
                 AcpiDmPredefinedDescription (Op);
                 break;
 
-
             case AML_NAME_OP:
 
                 /* Check for _HID and related EISAID() */
 
-                AcpiDmIsEisaId (Op);
+                AcpiDmCheckForHardwareId (Op);
                 AcpiOsPrintf (", ");
                 break;
-
 
             case AML_REGION_OP:
 
                 AcpiDmRegionFlags (Op);
                 break;
-
 
             case AML_POWER_RES_OP:
 
@@ -638,7 +745,6 @@ AcpiDmDescendingOp (
                 NextOp = NextOp->Common.Next;
                 NextOp->Common.DisasmFlags |= ACPI_PARSEOP_PARAMLIST;
                 return (AE_OK);
-
 
             case AML_PROCESSOR_OP:
 
@@ -655,19 +761,16 @@ AcpiDmDescendingOp (
                 NextOp->Common.DisasmFlags |= ACPI_PARSEOP_PARAMLIST;
                 return (AE_OK);
 
-
             case AML_MUTEX_OP:
             case AML_DATA_REGION_OP:
 
                 AcpiOsPrintf (", ");
                 return (AE_OK);
 
-
             case AML_EVENT_OP:
             case AML_ALIAS_OP:
 
                 return (AE_OK);
-
 
             case AML_SCOPE_OP:
             case AML_DEVICE_OP:
@@ -675,7 +778,6 @@ AcpiDmDescendingOp (
 
                 AcpiOsPrintf (")");
                 break;
-
 
             default:
 
@@ -748,7 +850,6 @@ AcpiDmDescendingOp (
             AcpiDmFieldFlags (NextOp);
             break;
 
-
         case AML_BUFFER_OP:
 
             /* The next op is the size parameter */
@@ -786,9 +887,8 @@ AcpiDmDescendingOp (
             NextOp->Common.DisasmFlags |= ACPI_PARSEOP_PARAMLIST;
             return (AE_OK);
 
-
-        case AML_VAR_PACKAGE_OP:
         case AML_IF_OP:
+        case AML_VAR_PACKAGE_OP:
         case AML_WHILE_OP:
 
             /* The next op is the size or predicate parameter */
@@ -799,7 +899,6 @@ AcpiDmDescendingOp (
                 NextOp->Common.DisasmFlags |= ACPI_PARSEOP_PARAMLIST;
             }
             return (AE_OK);
-
 
         case AML_PACKAGE_OP:
 
@@ -812,12 +911,10 @@ AcpiDmDescendingOp (
             }
             return (AE_OK);
 
-
         case AML_MATCH_OP:
 
             AcpiDmMatchOp (Op);
             break;
-
 
         default:
 
@@ -878,9 +975,9 @@ AcpiDmAscendingOp (
     {
     case BLOCK_PAREN:
 
-        /* Completed an op that has arguments, add closing paren */
+        /* Completed an op that has arguments, add closing paren if needed */
 
-        AcpiOsPrintf (")");
+        AcpiDmCloseOperator (Op);
 
         if (Op->Common.AmlOpcode == AML_NAME_OP)
         {
@@ -895,13 +992,22 @@ AcpiDmAscendingOp (
             AcpiDmFieldPredefinedDescription (Op);
         }
 
+        /* Decode Notify() values */
+
+        if (Op->Common.AmlOpcode == AML_NOTIFY_OP)
+        {
+            AcpiDmNotifyDescription (Op);
+        }
+
+        AcpiDmDisplayTargetPathname (Op);
+
         /* Could be a nested operator, check if comma required */
 
         if (!AcpiDmCommaIfListMember (Op))
         {
             if ((AcpiDmBlockType (Op->Common.Parent) & BLOCK_BRACE) &&
-                     (!(Op->Common.DisasmFlags & ACPI_PARSEOP_PARAMLIST)) &&
-                     (Op->Common.AmlOpcode != AML_INT_BYTELIST_OP))
+                 (!(Op->Common.DisasmFlags & ACPI_PARSEOP_PARAMLIST)) &&
+                 (Op->Common.AmlOpcode != AML_INT_BYTELIST_OP))
             {
                 /*
                  * This is a first-level element of a term list
@@ -914,7 +1020,6 @@ AcpiDmAscendingOp (
             }
         }
         break;
-
 
     case BLOCK_BRACE:
     case (BLOCK_BRACE | BLOCK_PAREN):
@@ -955,7 +1060,6 @@ AcpiDmAscendingOp (
         }
         break;
 
-
     case BLOCK_NONE:
     default:
 
@@ -964,8 +1068,8 @@ AcpiDmAscendingOp (
         if (!AcpiDmCommaIfListMember (Op))
         {
             if ((AcpiDmBlockType (Op->Common.Parent) & BLOCK_BRACE) &&
-                     (!(Op->Common.DisasmFlags & ACPI_PARSEOP_PARAMLIST)) &&
-                     (Op->Common.AmlOpcode != AML_INT_BYTELIST_OP))
+                 (!(Op->Common.DisasmFlags & ACPI_PARSEOP_PARAMLIST)) &&
+                 (Op->Common.AmlOpcode != AML_INT_BYTELIST_OP))
             {
                 /*
                  * This is a first-level element of a term list
@@ -1004,6 +1108,13 @@ AcpiDmAscendingOp (
         }
 
         /*
+         * The parent Op is guaranteed to be valid because of the flag
+         * ACPI_PARSEOP_PARAMLIST -- which means that this op is part of
+         * a parameter list and thus has a valid parent.
+         */
+        ParentOp = Op->Common.Parent;
+
+        /*
          * Just completed a parameter node for something like "Buffer (param)".
          * Close the paren and open up the term list block with a brace
          */
@@ -1011,25 +1122,24 @@ AcpiDmAscendingOp (
         {
             AcpiOsPrintf (")");
 
-            /* Emit description comment for Name() with a predefined ACPI name */
-
-            ParentOp = Op->Common.Parent;
-            if (ParentOp)
+            /*
+             * Emit a description comment for a Name() operator that is a
+             * predefined ACPI name. Must check the grandparent.
+             */
+            ParentOp = ParentOp->Common.Parent;
+            if (ParentOp &&
+                (ParentOp->Asl.AmlOpcode == AML_NAME_OP))
             {
-                ParentOp = ParentOp->Common.Parent;
-                if (ParentOp && ParentOp->Asl.AmlOpcode == AML_NAME_OP)
-                {
-                    AcpiDmPredefinedDescription (ParentOp);
-                }
+                AcpiDmPredefinedDescription (ParentOp);
             }
+
             AcpiOsPrintf ("\n");
             AcpiDmIndent (Level - 1);
             AcpiOsPrintf ("{\n");
         }
         else
         {
-            Op->Common.Parent->Common.DisasmFlags |=
-                                    ACPI_PARSEOP_EMPTY_TERMLIST;
+            ParentOp->Common.DisasmFlags |= ACPI_PARSEOP_EMPTY_TERMLIST;
             AcpiOsPrintf (") {");
         }
     }
@@ -1039,8 +1149,19 @@ AcpiDmAscendingOp (
     {
         Info->Level++;
     }
+
+    /*
+     * For ASL+, check for and emit a C-style symbol. If valid, the
+     * symbol string has been deferred until after the first operand
+     */
+    if (AcpiGbl_CstyleDisassembly)
+    {
+        if (Op->Asl.OperatorSymbol)
+        {
+            AcpiOsPrintf ("%s", Op->Asl.OperatorSymbol);
+            Op->Asl.OperatorSymbol = NULL;
+        }
+    }
+
     return (AE_OK);
 }
-
-
-#endif  /* ACPI_DISASSEMBLER */

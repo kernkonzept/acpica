@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -113,8 +113,7 @@
  *
  *****************************************************************************/
 
-
-#define __UTXFACE_C__
+#define EXPORT_ACPI_INTERFACES
 
 #include "acpi.h"
 #include "accommon.h"
@@ -146,24 +145,6 @@ AcpiTerminate (
     ACPI_FUNCTION_TRACE (AcpiTerminate);
 
 
-    /* Just exit if subsystem is already shutdown */
-
-    if (AcpiGbl_Shutdown)
-    {
-        ACPI_ERROR ((AE_INFO, "ACPI Subsystem is already terminated"));
-        return_ACPI_STATUS (AE_OK);
-    }
-
-    /* Subsystem appears active, go ahead and shut it down */
-
-    AcpiGbl_Shutdown = TRUE;
-    AcpiGbl_StartupFlags = 0;
-    ACPI_DEBUG_PRINT ((ACPI_DB_INFO, "Shutting down ACPI Subsystem\n"));
-
-    /* Terminate the AML Debugger if present */
-
-    ACPI_DEBUGGER_EXEC (AcpiGbl_DbTerminateThreads = TRUE);
-
     /* Shutdown and free all resources */
 
     AcpiUtSubsystemShutdown ();
@@ -172,21 +153,13 @@ AcpiTerminate (
 
     AcpiUtMutexTerminate ();
 
-
-#ifdef ACPI_DEBUGGER
-
-    /* Shut down the debugger */
-
-    AcpiDbTerminate ();
-#endif
-
     /* Now we can shutdown the OS-dependent layer */
 
     Status = AcpiOsTerminate ();
     return_ACPI_STATUS (Status);
 }
 
-ACPI_EXPORT_SYMBOL (AcpiTerminate)
+ACPI_EXPORT_SYMBOL_INIT (AcpiTerminate)
 
 
 #ifndef ACPI_ASL_COMPILER
@@ -271,7 +244,6 @@ AcpiGetSystemInfo (
      * Populate the return buffer
      */
     InfoPtr = (ACPI_SYSTEM_INFO *) OutBuffer->Pointer;
-
     InfoPtr->AcpiCaVersion = ACPI_CA_VERSION;
 
     /* System flags (ACPI capabilities) */
@@ -336,14 +308,12 @@ AcpiGetStatistics (
     Stats->SciCount = AcpiSciCount;
     Stats->GpeCount = AcpiGpeCount;
 
-    ACPI_MEMCPY (Stats->FixedEventCount, AcpiFixedEventCount,
+    memcpy (Stats->FixedEventCount, AcpiFixedEventCount,
         sizeof (AcpiFixedEventCount));
-
 
     /* Other counters */
 
     Stats->MethodCount = AcpiMethodCount;
-
     return_ACPI_STATUS (AE_OK);
 }
 
@@ -440,12 +410,16 @@ AcpiInstallInterface (
 
     /* Parameter validation */
 
-    if (!InterfaceName || (ACPI_STRLEN (InterfaceName) == 0))
+    if (!InterfaceName || (strlen (InterfaceName) == 0))
     {
         return (AE_BAD_PARAMETER);
     }
 
-    (void) AcpiOsAcquireMutex (AcpiGbl_OsiMutex, ACPI_WAIT_FOREVER);
+    Status = AcpiOsAcquireMutex (AcpiGbl_OsiMutex, ACPI_WAIT_FOREVER);
+    if (ACPI_FAILURE (Status))
+    {
+        return (Status);
+    }
 
     /* Check if the interface name is already in the global list */
 
@@ -501,12 +475,16 @@ AcpiRemoveInterface (
 
     /* Parameter validation */
 
-    if (!InterfaceName || (ACPI_STRLEN (InterfaceName) == 0))
+    if (!InterfaceName || (strlen (InterfaceName) == 0))
     {
         return (AE_BAD_PARAMETER);
     }
 
-    (void) AcpiOsAcquireMutex (AcpiGbl_OsiMutex, ACPI_WAIT_FOREVER);
+    Status = AcpiOsAcquireMutex (AcpiGbl_OsiMutex, ACPI_WAIT_FOREVER);
+    if (ACPI_FAILURE (Status))
+    {
+        return (Status);
+    }
 
     Status = AcpiUtRemoveInterface (InterfaceName);
 
@@ -536,10 +514,14 @@ ACPI_STATUS
 AcpiInstallInterfaceHandler (
     ACPI_INTERFACE_HANDLER  Handler)
 {
-    ACPI_STATUS             Status = AE_OK;
+    ACPI_STATUS             Status;
 
 
-    (void) AcpiOsAcquireMutex (AcpiGbl_OsiMutex, ACPI_WAIT_FOREVER);
+    Status = AcpiOsAcquireMutex (AcpiGbl_OsiMutex, ACPI_WAIT_FOREVER);
+    if (ACPI_FAILURE (Status))
+    {
+        return (Status);
+    }
 
     if (Handler && AcpiGbl_InterfaceHandler)
     {
@@ -555,6 +537,40 @@ AcpiInstallInterfaceHandler (
 }
 
 ACPI_EXPORT_SYMBOL (AcpiInstallInterfaceHandler)
+
+
+/*****************************************************************************
+ *
+ * FUNCTION:    AcpiUpdateInterfaces
+ *
+ * PARAMETERS:  Action              - Actions to be performed during the
+ *                                    update
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Update _OSI interface strings, disabling or enabling OS vendor
+ *              string or/and feature group strings.
+ *
+ ****************************************************************************/
+
+ACPI_STATUS
+AcpiUpdateInterfaces (
+    UINT8                   Action)
+{
+    ACPI_STATUS             Status;
+
+
+    Status = AcpiOsAcquireMutex (AcpiGbl_OsiMutex, ACPI_WAIT_FOREVER);
+    if (ACPI_FAILURE (Status))
+    {
+        return (Status);
+    }
+
+    Status = AcpiUtUpdateInterfaces (Action);
+
+    AcpiOsReleaseMutex (AcpiGbl_OsiMutex);
+    return (Status);
+}
 
 
 /*****************************************************************************
@@ -631,7 +647,7 @@ AcpiDecodePldBuffer (
 
     /* Parameter validation */
 
-    if (!InBuffer || !ReturnBuffer || (Length < 16))
+    if (!InBuffer || !ReturnBuffer || (Length < ACPI_PLD_REV1_BUFFER_SIZE))
     {
         return (AE_BAD_PARAMETER);
     }
@@ -647,7 +663,9 @@ AcpiDecodePldBuffer (
     ACPI_MOVE_32_TO_32 (&Dword, &Buffer[0]);
     PldInfo->Revision =             ACPI_PLD_GET_REVISION (&Dword);
     PldInfo->IgnoreColor =          ACPI_PLD_GET_IGNORE_COLOR (&Dword);
-    PldInfo->Color =                ACPI_PLD_GET_COLOR (&Dword);
+    PldInfo->Red =                  ACPI_PLD_GET_RED (&Dword);
+    PldInfo->Green =                ACPI_PLD_GET_GREEN (&Dword);
+    PldInfo->Blue =                 ACPI_PLD_GET_BLUE (&Dword);
 
     /* Second 32-bit DWord */
 
@@ -681,7 +699,7 @@ AcpiDecodePldBuffer (
     PldInfo->Rotation =             ACPI_PLD_GET_ROTATION (&Dword);
     PldInfo->Order =                ACPI_PLD_GET_ORDER (&Dword);
 
-    if (Length >= ACPI_PLD_BUFFER_SIZE)
+    if (Length >= ACPI_PLD_REV2_BUFFER_SIZE)
     {
         /* Fifth 32-bit DWord (Revision 2 of _PLD) */
 

@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -125,21 +125,21 @@
 
 
 /*
- * Stubs to simplify linkage to the ACPI CA core subsystem.
+ * Stubs to simplify linkage to the ACPICA core subsystem.
  * Things like Events, Global Lock, etc. are not used
  * by the compiler, so they are stubbed out here.
  */
-ACPI_PHYSICAL_ADDRESS
-AeLocalGetRootPointer (
-    void)
-{
-    return (0);
-}
-
 void
 AcpiNsExecModuleCodeList (
     void)
 {
+}
+
+ACPI_STATUS
+AcpiNsInitializeObjects (
+    void)
+{
+    return (AE_OK);
 }
 
 ACPI_STATUS
@@ -199,6 +199,13 @@ AcpiDsStoreObjectToLocal (
 }
 
 ACPI_STATUS
+AcpiEvInstallRegionHandlers (
+    void)
+{
+    return (AE_OK);
+}
+
+ACPI_STATUS
 AcpiEvQueueNotifyRequest (
     ACPI_NAMESPACE_NODE     *Node,
     UINT32                  NotifyValue)
@@ -244,15 +251,6 @@ AcpiEvInitializeRegion (
     return (AE_OK);
 }
 
-void
-AcpiExDoDebugObject (
-    ACPI_OPERAND_OBJECT     *SourceDesc,
-    UINT32                  Level,
-    UINT32                  Index)
-{
-    return;
-}
-
 ACPI_STATUS
 AcpiExReadDataFromField (
     ACPI_WALK_STATE         *WalkState,
@@ -295,6 +293,60 @@ AcpiExLoadOp (
     return (AE_SUPPORT);
 }
 
+void
+AcpiExDoDebugObject (
+    ACPI_OPERAND_OBJECT     *SourceDesc,
+    UINT32                  Level,
+    UINT32                  Index)
+{
+    return;
+}
+
+void
+AcpiExStartTraceMethod (
+    ACPI_NAMESPACE_NODE     *MethodNode,
+    ACPI_OPERAND_OBJECT     *ObjDesc,
+    ACPI_WALK_STATE         *WalkState)
+{
+    return;
+}
+
+void
+AcpiExStopTraceMethod (
+    ACPI_NAMESPACE_NODE     *MethodNode,
+    ACPI_OPERAND_OBJECT     *ObjDesc,
+    ACPI_WALK_STATE         *WalkState)
+{
+    return;
+}
+
+void
+AcpiExStartTraceOpcode (
+    ACPI_PARSE_OBJECT       *Op,
+    ACPI_WALK_STATE         *WalkState)
+{
+    return;
+}
+
+void
+AcpiExStopTraceOpcode (
+    ACPI_PARSE_OBJECT       *Op,
+    ACPI_WALK_STATE         *WalkState)
+
+{
+    return;
+}
+
+void
+AcpiExTracePoint (
+    ACPI_TRACE_EVENT_TYPE   Type,
+    BOOLEAN                 Begin,
+    UINT8                   *Aml,
+    char                    *Pathname)
+{
+    return;
+}
+
 ACPI_STATUS
 AcpiTbFindTable (
     char                    *Signature,
@@ -305,20 +357,44 @@ AcpiTbFindTable (
     return (AE_SUPPORT);
 }
 
-/* OSL interfaces */
-
-ACPI_THREAD_ID
-AcpiOsGetThreadId (
-    void)
+ACPI_STATUS
+AcpiNsLoadTable (
+    UINT32                  TableIndex,
+    ACPI_NAMESPACE_NODE     *Node)
 {
-    return (0xFFFF);
+    return (AE_NOT_IMPLEMENTED);
 }
 
 ACPI_STATUS
-AcpiOsExecute (
-    ACPI_EXECUTE_TYPE       Type,
-    ACPI_OSD_EXEC_CALLBACK  Function,
-    void                    *Context)
+AcpiDsRestartControlMethod (
+    ACPI_WALK_STATE         *WalkState,
+    ACPI_OPERAND_OBJECT     *ReturnDesc)
 {
-    return (AE_SUPPORT);
+    return (AE_OK);
+}
+
+void
+AcpiDsTerminateControlMethod (
+    ACPI_OPERAND_OBJECT     *MethodDesc,
+    ACPI_WALK_STATE         *WalkState)
+{
+    return;
+}
+
+ACPI_STATUS
+AcpiDsCallControlMethod (
+    ACPI_THREAD_STATE       *Thread,
+    ACPI_WALK_STATE         *WalkState,
+    ACPI_PARSE_OBJECT       *Op)
+{
+    return (AE_OK);
+}
+
+ACPI_STATUS
+AcpiDsMethodDataInitArgs (
+    ACPI_OPERAND_OBJECT     **Params,
+    UINT32                  MaxParamCount,
+    ACPI_WALK_STATE         *WalkState)
+{
+    return (AE_OK);
 }

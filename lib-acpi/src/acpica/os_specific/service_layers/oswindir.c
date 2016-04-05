@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -174,10 +174,12 @@ AcpiOsOpenDirectory (
 
     /* Allocate space for the full wildcard path */
 
-    FullWildcardSpec = calloc (strlen (DirPathname) + strlen (WildcardSpec) + 2, 1);
+    FullWildcardSpec = calloc (
+        strlen (DirPathname) + strlen (WildcardSpec) + 2, 1);
     if (!FullWildcardSpec)
     {
         printf ("Could not allocate buffer for wildcard pathname\n");
+        free (SearchInfo);
         return (NULL);
     }
 
@@ -286,6 +288,7 @@ AcpiOsGetNextFilename (
             break;
 
         default:
+
             return (NULL);
         }
     }

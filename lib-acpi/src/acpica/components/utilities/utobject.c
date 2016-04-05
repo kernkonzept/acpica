@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -113,8 +113,6 @@
  *
  *****************************************************************************/
 
-#define __UTOBJECT_C__
-
 #include "acpi.h"
 #include "accommon.h"
 #include "acnamesp.h"
@@ -181,7 +179,8 @@ AcpiUtCreateInternalObjectDbg (
 
     /* Allocate the raw object descriptor */
 
-    Object = AcpiUtAllocateObjectDescDbg (ModuleName, LineNumber, ComponentId);
+    Object = AcpiUtAllocateObjectDescDbg (
+        ModuleName, LineNumber, ComponentId);
     if (!Object)
     {
         return_PTR (NULL);
@@ -195,8 +194,8 @@ AcpiUtCreateInternalObjectDbg (
 
         /* These types require a secondary object */
 
-        SecondObject = AcpiUtAllocateObjectDescDbg (ModuleName,
-                            LineNumber, ComponentId);
+        SecondObject = AcpiUtAllocateObjectDescDbg (
+            ModuleName, LineNumber, ComponentId);
         if (!SecondObject)
         {
             AcpiUtDeleteObjectDesc (Object);
@@ -212,6 +211,7 @@ AcpiUtCreateInternalObjectDbg (
         break;
 
     default:
+
         /* All others have no secondary object */
         break;
     }
@@ -266,7 +266,7 @@ AcpiUtCreatePackageObject (
      * terminated.
      */
     PackageElements = ACPI_ALLOCATE_ZEROED (
-                        ((ACPI_SIZE) Count + 1) * sizeof (void *));
+        ((ACPI_SIZE) Count + 1) * sizeof (void *));
     if (!PackageElements)
     {
         ACPI_FREE (PackageDesc);
@@ -356,6 +356,7 @@ AcpiUtCreateBufferObject (
         {
             ACPI_ERROR ((AE_INFO, "Could not allocate size %u",
                 (UINT32) BufferSize));
+
             AcpiUtRemoveReference (BufferDesc);
             return_PTR (NULL);
         }
@@ -415,6 +416,7 @@ AcpiUtCreateStringObject (
     {
         ACPI_ERROR ((AE_INFO, "Could not allocate size %u",
             (UINT32) StringSize));
+
         AcpiUtRemoveReference (StringDesc);
         return_PTR (NULL);
     }
@@ -469,9 +471,10 @@ AcpiUtValidInternalObject (
         return (TRUE);
 
     default:
+
         ACPI_DEBUG_PRINT ((ACPI_DB_EXEC,
-                "%p is not not an ACPI operand obj [%s]\n",
-                Object, AcpiUtGetDescriptorName (Object)));
+            "%p is not an ACPI operand obj [%s]\n",
+            Object, AcpiUtGetDescriptorName (Object)));
         break;
     }
 
@@ -520,7 +523,7 @@ AcpiUtAllocateObjectDescDbg (
     ACPI_SET_DESCRIPTOR_TYPE (Object, ACPI_DESC_TYPE_OPERAND);
 
     ACPI_DEBUG_PRINT ((ACPI_DB_ALLOCATIONS, "%p Size %X\n",
-            Object, (UINT32) sizeof (ACPI_OPERAND_OBJECT)));
+        Object, (UINT32) sizeof (ACPI_OPERAND_OBJECT)));
 
     return_PTR (Object);
 }
@@ -628,12 +631,10 @@ AcpiUtGetSimpleObjectSize (
         Length += (ACPI_SIZE) InternalObject->String.Length + 1;
         break;
 
-
     case ACPI_TYPE_BUFFER:
 
         Length += (ACPI_SIZE) InternalObject->Buffer.Length;
         break;
-
 
     case ACPI_TYPE_INTEGER:
     case ACPI_TYPE_PROCESSOR:
@@ -643,13 +644,11 @@ AcpiUtGetSimpleObjectSize (
 
         break;
 
-
     case ACPI_TYPE_LOCAL_REFERENCE:
 
         switch (InternalObject->Reference.Class)
         {
         case ACPI_REFCLASS_NAME:
-
             /*
              * Get the actual length of the full pathname to this object.
              * The reference will be converted to the pathname to the object
@@ -664,7 +663,6 @@ AcpiUtGetSimpleObjectSize (
             break;
 
         default:
-
             /*
              * No other reference opcodes are supported.
              * Notably, Locals and Args are not supported, but this may be
@@ -678,7 +676,6 @@ AcpiUtGetSimpleObjectSize (
             break;
         }
         break;
-
 
     default:
 
@@ -728,7 +725,6 @@ AcpiUtGetElementLength (
     switch (ObjectType)
     {
     case ACPI_COPY_TYPE_SIMPLE:
-
         /*
          * Simple object - just get the size (Null object/entry is handled
          * here also) and sum it into the running package length
@@ -742,7 +738,6 @@ AcpiUtGetElementLength (
         Info->Length += ObjectSpace;
         break;
 
-
     case ACPI_COPY_TYPE_PACKAGE:
 
         /* Package object - nothing much to do here, let the walk handle it */
@@ -750,7 +745,6 @@ AcpiUtGetElementLength (
         Info->NumPackages++;
         State->Pkg.ThisTargetObj = NULL;
         break;
-
 
     default:
 
@@ -792,12 +786,12 @@ AcpiUtGetPackageObjectSize (
     ACPI_FUNCTION_TRACE_PTR (UtGetPackageObjectSize, InternalObject);
 
 
-    Info.Length      = 0;
+    Info.Length = 0;
     Info.ObjectSpace = 0;
     Info.NumPackages = 1;
 
-    Status = AcpiUtWalkPackageTree (InternalObject, NULL,
-                            AcpiUtGetElementLength, &Info);
+    Status = AcpiUtWalkPackageTree (
+        InternalObject, NULL, AcpiUtGetElementLength, &Info);
     if (ACPI_FAILURE (Status))
     {
         return_ACPI_STATUS (Status);
@@ -808,8 +802,8 @@ AcpiUtGetPackageObjectSize (
      * just add the length of the package objects themselves.
      * Round up to the next machine word.
      */
-    Info.Length += ACPI_ROUND_UP_TO_NATIVE_WORD (sizeof (ACPI_OBJECT)) *
-                    (ACPI_SIZE) Info.NumPackages;
+    Info.Length += ACPI_ROUND_UP_TO_NATIVE_WORD (
+        sizeof (ACPI_OBJECT)) * (ACPI_SIZE) Info.NumPackages;
 
     /* Return the total package length */
 
@@ -843,7 +837,8 @@ AcpiUtGetObjectSize (
     ACPI_FUNCTION_ENTRY ();
 
 
-    if ((ACPI_GET_DESCRIPTOR_TYPE (InternalObject) == ACPI_DESC_TYPE_OPERAND) &&
+    if ((ACPI_GET_DESCRIPTOR_TYPE (InternalObject) ==
+            ACPI_DESC_TYPE_OPERAND) &&
         (InternalObject->Common.Type == ACPI_TYPE_PACKAGE))
     {
         Status = AcpiUtGetPackageObjectSize (InternalObject, ObjLength);

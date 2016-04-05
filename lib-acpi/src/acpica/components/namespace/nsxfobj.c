@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -114,8 +114,7 @@
  *
  *****************************************************************************/
 
-
-#define __NSXFOBJ_C__
+#define EXPORT_ACPI_INTERFACES
 
 #include "acpi.h"
 #include "accommon.h"
@@ -154,10 +153,8 @@ AcpiGetType (
         return (AE_BAD_PARAMETER);
     }
 
-    /*
-     * Special case for the predefined Root Node
-     * (return type ANY)
-     */
+    /* Special case for the predefined Root Node (return type ANY) */
+
     if (Handle == ACPI_ROOT_OBJECT)
     {
         *RetType = ACPI_TYPE_ANY;
@@ -180,7 +177,6 @@ AcpiGetType (
     }
 
     *RetType = Node->Type;
-
 
     Status = AcpiUtReleaseMutex (ACPI_MTX_NAMESPACE);
     return (Status);

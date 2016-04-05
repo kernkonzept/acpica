@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -112,8 +112,6 @@
  * such license, approval or letter.
  *
  *****************************************************************************/
-
-#define __EXNAMES_C__
 
 #include "acpi.h"
 #include "accommon.h"
@@ -234,6 +232,7 @@ AcpiExAllocateNameString (
     return_PTR (NameString);
 }
 
+
 /*******************************************************************************
  *
  * FUNCTION:    AcpiExNameSegment
@@ -263,8 +262,8 @@ AcpiExNameSegment (
 
 
     /*
-     * If first character is a digit, then we know that we aren't looking at a
-     * valid name segment
+     * If first character is a digit, then we know that we aren't looking
+     * at a valid name segment
      */
     CharBuf[0] = *AmlAddress;
 
@@ -295,7 +294,7 @@ AcpiExNameSegment (
 
         if (NameString)
         {
-            ACPI_STRCAT (NameString, CharBuf);
+            strcat (NameString, CharBuf);
             ACPI_DEBUG_PRINT ((ACPI_DB_NAMES,
                 "Appended to - %s\n", NameString));
         }
@@ -406,7 +405,6 @@ AcpiExGetNameString (
             HasPrefix = TRUE;
             break;
 
-
         case AML_PARENT_PREFIX:
 
             /* Increment past possibly multiple parent prefixes */
@@ -423,7 +421,6 @@ AcpiExGetNameString (
 
             HasPrefix = TRUE;
             break;
-
 
         default:
 
@@ -460,7 +457,6 @@ AcpiExGetNameString (
             }
             break;
 
-
         case AML_MULTI_NAME_PREFIX_OP:
 
             ACPI_DEBUG_PRINT ((ACPI_DB_LOAD, "MultiNamePrefix at %p\n",
@@ -471,7 +467,8 @@ AcpiExGetNameString (
             AmlAddress++;
             NumSegments = *AmlAddress;
 
-            NameString = AcpiExAllocateNameString (PrefixCount, NumSegments);
+            NameString = AcpiExAllocateNameString (
+                PrefixCount, NumSegments);
             if (!NameString)
             {
                 Status = AE_NO_MEMORY;
@@ -491,7 +488,6 @@ AcpiExGetNameString (
             }
 
             break;
-
 
         case 0:
 
@@ -514,7 +510,6 @@ AcpiExGetNameString (
             }
 
             break;
-
 
         default:
 

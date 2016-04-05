@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -216,9 +216,10 @@ AcpiEvFinishGpe (
 ACPI_STATUS
 AcpiEvCreateGpeBlock (
     ACPI_NAMESPACE_NODE     *GpeDevice,
-    ACPI_GENERIC_ADDRESS    *GpeBlockAddress,
+    UINT64                  Address,
+    UINT8                   SpaceId,
     UINT32                  RegisterCount,
-    UINT8                   GpeBlockBaseNumber,
+    UINT16                  GpeBlockBaseNumber,
     UINT32                  InterruptNumber,
     ACPI_GPE_BLOCK_INFO     **ReturnGpeBlock);
 
@@ -239,6 +240,7 @@ AcpiEvGpeDispatch (
     ACPI_GPE_EVENT_INFO     *GpeEventInfo,
     UINT32                  GpeNumber);
 
+
 /*
  * evgpeinit - GPE initialization and update
  */
@@ -258,6 +260,7 @@ AcpiEvMatchGpeMethod (
     void                    *Context,
     void                    **ReturnValue);
 
+
 /*
  * evgpeutil - GPE utilities
  */
@@ -266,19 +269,16 @@ AcpiEvWalkGpeList (
     ACPI_GPE_CALLBACK       GpeWalkCallback,
     void                    *Context);
 
-BOOLEAN
-AcpiEvValidGpeEvent (
-    ACPI_GPE_EVENT_INFO     *GpeEventInfo);
-
 ACPI_STATUS
 AcpiEvGetGpeDevice (
     ACPI_GPE_XRUPT_INFO     *GpeXruptInfo,
     ACPI_GPE_BLOCK_INFO     *GpeBlock,
     void                    *Context);
 
-ACPI_GPE_XRUPT_INFO *
+ACPI_STATUS
 AcpiEvGetGpeXruptBlock (
-    UINT32                  InterruptNumber);
+    UINT32                  InterruptNumber,
+    ACPI_GPE_XRUPT_INFO     **GpeXruptBlock);
 
 ACPI_STATUS
 AcpiEvDeleteGpeXrupt (
@@ -292,12 +292,34 @@ AcpiEvDeleteGpeHandlers (
 
 
 /*
- * evregion - Address Space handling
+ * evhandler - Address space handling
  */
+ACPI_OPERAND_OBJECT *
+AcpiEvFindRegionHandler (
+    ACPI_ADR_SPACE_TYPE     SpaceId,
+    ACPI_OPERAND_OBJECT     *HandlerObj);
+
+BOOLEAN
+AcpiEvHasDefaultHandler (
+    ACPI_NAMESPACE_NODE     *Node,
+    ACPI_ADR_SPACE_TYPE     SpaceId);
+
 ACPI_STATUS
 AcpiEvInstallRegionHandlers (
     void);
 
+ACPI_STATUS
+AcpiEvInstallSpaceHandler (
+    ACPI_NAMESPACE_NODE     *Node,
+    ACPI_ADR_SPACE_TYPE     SpaceId,
+    ACPI_ADR_SPACE_HANDLER  Handler,
+    ACPI_ADR_SPACE_SETUP    Setup,
+    void                    *Context);
+
+
+/*
+ * evregion - Operation region support
+ */
 ACPI_STATUS
 AcpiEvInitializeOpRegions (
     void);
@@ -319,25 +341,18 @@ AcpiEvAttachRegion (
 
 void
 AcpiEvDetachRegion (
-    ACPI_OPERAND_OBJECT    *RegionObj,
+    ACPI_OPERAND_OBJECT     *RegionObj,
     BOOLEAN                 AcpiNsIsLocked);
 
-ACPI_STATUS
-AcpiEvInstallSpaceHandler (
-    ACPI_NAMESPACE_NODE     *Node,
-    ACPI_ADR_SPACE_TYPE     SpaceId,
-    ACPI_ADR_SPACE_HANDLER  Handler,
-    ACPI_ADR_SPACE_SETUP    Setup,
-    void                    *Context);
-
-ACPI_STATUS
+void
 AcpiEvExecuteRegMethods (
     ACPI_NAMESPACE_NODE     *Node,
-    ACPI_ADR_SPACE_TYPE     SpaceId);
+    ACPI_ADR_SPACE_TYPE     SpaceId,
+    UINT32                  Function);
 
 ACPI_STATUS
 AcpiEvExecuteRegMethod (
-    ACPI_OPERAND_OBJECT    *RegionObj,
+    ACPI_OPERAND_OBJECT     *RegionObj,
     UINT32                  Function);
 
 
@@ -400,16 +415,16 @@ AcpiEvGpeXruptHandler (
     void                    *Context);
 
 UINT32
+AcpiEvSciDispatch (
+    void);
+
+UINT32
 AcpiEvInstallSciHandler (
     void);
 
 ACPI_STATUS
-AcpiEvRemoveSciHandler (
+AcpiEvRemoveAllSciHandlers (
     void);
-
-UINT32
-AcpiEvInitializeSCI (
-    UINT32                  ProgramSCI);
 
 ACPI_HW_DEPENDENT_RETURN_VOID (
 void

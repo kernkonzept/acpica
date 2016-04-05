@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -113,7 +113,6 @@
  *
  *****************************************************************************/
 
-
 #include "acpi.h"
 #include "accommon.h"
 #include "acparser.h"
@@ -161,7 +160,7 @@ AcpiDmAddResourceToNamespace (
     UINT32                  Length,
     UINT32                  Offset,
     UINT8                   ResourceIndex,
-    void                    *Context);
+    void                    **Context);
 
 static void
 AcpiDmAddResourcesToNamespace (
@@ -571,9 +570,9 @@ AcpiDmCheckResourceReference (
     /* Lookup the buffer in the namespace */
 
     Status = AcpiNsLookup (WalkState->ScopeInfo,
-                BufferNameOp->Common.Value.String, ACPI_TYPE_BUFFER,
-                ACPI_IMODE_EXECUTE, ACPI_NS_SEARCH_PARENT, WalkState,
-                &BufferNode);
+        BufferNameOp->Common.Value.String, ACPI_TYPE_BUFFER,
+        ACPI_IMODE_EXECUTE, ACPI_NS_SEARCH_PARENT, WalkState,
+        &BufferNode);
     if (ACPI_FAILURE (Status))
     {
         return;
@@ -694,10 +693,10 @@ AcpiGetTagPathname (
 
     /* Get the individual resource descriptor and validate it */
 
-    Aml = ACPI_CAST_PTR (AML_RESOURCE,
-            &Op->Named.Data[ResourceNode->Value]);
+    Aml = ACPI_CAST_PTR (
+        AML_RESOURCE, &Op->Named.Data[ResourceNode->Value]);
 
-    Status = AcpiUtValidateResource (Aml, &ResourceTableIndex);
+    Status = AcpiUtValidateResource (NULL, Aml, &ResourceTableIndex);
     if (ACPI_FAILURE (Status))
     {
         return (NULL);
@@ -723,7 +722,7 @@ AcpiGetTagPathname (
 
     /* Get the full pathname to the parent buffer */
 
-    RequiredSize = AcpiNsGetPathnameLength (BufferNode);
+    RequiredSize = AcpiNsBuildNormalizedPath (BufferNode, NULL, 0, FALSE);
     if (!RequiredSize)
     {
         return (NULL);
@@ -735,11 +734,8 @@ AcpiGetTagPathname (
         return (NULL);
     }
 
-    Status = AcpiNsBuildExternalPath (BufferNode, RequiredSize, Pathname);
-    if (ACPI_FAILURE (Status))
-    {
-        return (NULL);
-    }
+    (void) AcpiNsBuildNormalizedPath (BufferNode, Pathname,
+        RequiredSize, FALSE);
 
     /*
      * Create the full path to the resource and tag by: remove the buffer name,
@@ -751,10 +747,10 @@ AcpiGetTagPathname (
      * end up in the final compiled AML, it's just an appearance issue for the
      * disassembled code.
      */
-    Pathname[ACPI_STRLEN (Pathname) - ACPI_NAME_SIZE] = 0;
-    ACPI_STRNCAT (Pathname, ResourceNode->Name.Ascii, ACPI_NAME_SIZE);
-    ACPI_STRCAT (Pathname, ".");
-    ACPI_STRNCAT (Pathname, Tag, ACPI_NAME_SIZE);
+    Pathname[strlen (Pathname) - ACPI_NAME_SIZE] = 0;
+    strncat (Pathname, ResourceNode->Name.Ascii, ACPI_NAME_SIZE);
+    strcat (Pathname, ".");
+    strncat (Pathname, Tag, ACPI_NAME_SIZE);
 
     /* Internalize the namepath to AML format */
 
@@ -818,6 +814,7 @@ AcpiDmUpdateResourceName (
     {
         AcpiGbl_NextResourceId = 0;
         AcpiGbl_NextPrefix++;
+
         if (AcpiGbl_NextPrefix > ACPI_NUM_RES_PREFIX)
         {
             AcpiGbl_NextPrefix = 0;
@@ -870,7 +867,6 @@ AcpiDmGetResourceTag (
     case ACPI_RESOURCE_NAME_ADDRESS32:
     case ACPI_RESOURCE_NAME_ADDRESS64:
     case ACPI_RESOURCE_NAME_EXTENDED_ADDRESS64:
-
         /*
          * Subtype differentiation is the flags.
          * Kindof brute force, but just blindly search for an index match
@@ -918,6 +914,7 @@ AcpiDmGetResourceTag (
         break;
 
     default:
+
         break;
     }
 
@@ -1010,7 +1007,7 @@ AcpiDmFindResources (
                  * resource descriptors to the namespace, as children of the
                  * buffer node.
                  */
-                if (ACPI_SUCCESS (AcpiDmIsResourceTemplate (Op)))
+                if (ACPI_SUCCESS (AcpiDmIsResourceTemplate (NULL, Op)))
                 {
                     Op->Common.DisasmOpcode = ACPI_DASM_RESOURCE;
                     AcpiDmAddResourcesToNamespace (Parent->Common.Node, Op);
@@ -1063,9 +1060,9 @@ AcpiDmAddResourcesToNamespace (
      * Insert each resource into the namespace
      * NextOp contains the Aml pointer and the Aml length
      */
-    AcpiUtWalkAmlResources ((UINT8 *) NextOp->Named.Data,
+    AcpiUtWalkAmlResources (NULL, (UINT8 *) NextOp->Named.Data,
         (ACPI_SIZE) NextOp->Common.Value.Integer,
-        AcpiDmAddResourceToNamespace, BufferNode);
+        AcpiDmAddResourceToNamespace, (void **) BufferNode);
 }
 
 
@@ -1091,7 +1088,7 @@ AcpiDmAddResourceToNamespace (
     UINT32                  Length,
     UINT32                  Offset,
     UINT8                   ResourceIndex,
-    void                    *Context)
+    void                    **Context)
 {
     ACPI_STATUS             Status;
     ACPI_GENERIC_STATE      ScopeInfo;
@@ -1104,9 +1101,9 @@ AcpiDmAddResourceToNamespace (
 
     ScopeInfo.Scope.Node = ACPI_CAST_PTR (ACPI_NAMESPACE_NODE, Context);
     Status = AcpiNsLookup (&ScopeInfo, "_TMP", ACPI_TYPE_LOCAL_RESOURCE,
-                ACPI_IMODE_LOAD_PASS2,
-                ACPI_NS_NO_UPSEARCH | ACPI_NS_DONT_OPEN_SCOPE | ACPI_NS_PREFIX_IS_SCOPE,
-                NULL, &Node);
+        ACPI_IMODE_LOAD_PASS2,
+        ACPI_NS_NO_UPSEARCH | ACPI_NS_DONT_OPEN_SCOPE | ACPI_NS_PREFIX_IS_SCOPE,
+        NULL, &Node);
     if (ACPI_FAILURE (Status))
     {
         return (AE_OK);

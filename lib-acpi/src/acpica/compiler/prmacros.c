@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -432,7 +432,7 @@ PrAddMacro (
         if (ArgCount >= PR_MAX_MACRO_ARGS)
         {
             PrError (ASL_ERROR, ASL_MSG_TOO_MANY_ARGUMENTS, TokenOffset);
-            return;
+            goto ErrorExit;
         }
     }
 
@@ -459,7 +459,8 @@ PrAddMacro (
             {
                 UseCount = Args[i].UseCount;
 
-                Args[i].Offset[UseCount] = (Token - Gbl_MainTokenBuffer) - MacroBodyOffset;
+                Args[i].Offset[UseCount] =
+                    (Token - Gbl_MainTokenBuffer) - MacroBodyOffset;
 
                 DbgPrint (ASL_DEBUG_OUTPUT, PR_PREFIX_ID
                     "Macro Arg #%u: %s UseCount %u Offset %u \n",
@@ -472,7 +473,7 @@ PrAddMacro (
                     PrError (ASL_ERROR, ASL_MSG_TOO_MANY_ARGUMENTS,
                         THIS_TOKEN_OFFSET (Token));
 
-                    return;
+                    goto ErrorExit;
                 }
                 break;
             }
@@ -504,7 +505,7 @@ AddMacroToList:
                 THIS_TOKEN_OFFSET (Name));
         }
 
-        return;
+        goto ErrorExit;
     }
 
     DbgPrint (ASL_DEBUG_OUTPUT, PR_PREFIX_ID
@@ -523,6 +524,13 @@ AddMacroToList:
         DefineInfo->Args = Args;
         DefineInfo->ArgCount = ArgCount;
     }
+
+    return;
+
+
+ErrorExit:
+    ACPI_FREE (Args);
+    return;
 }
 
 

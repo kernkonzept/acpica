@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -119,6 +119,13 @@
 
 #define _COMPONENT          DT_COMPILER
         ACPI_MODULE_NAME    ("dtparser")
+
+void *                      AslLocalAllocate (unsigned int Size);
+
+/* Bison/yacc configuration */
+
+#undef alloca
+#define alloca              AslLocalAllocate
 
 int                         DtParserlex (void);
 int                         DtParserparse (void);
@@ -234,15 +241,15 @@ Expression
 
       /* Default base for a non-prefixed integer is 16 */
 
-    | EXPOP_NUMBER                                  { UtStrtoul64 (DtParsertext, 16, &$$);}
+    | EXPOP_NUMBER                                  { AcpiUtStrtoul64 (DtParsertext, 16, ACPI_MAX64_BYTE_WIDTH, &$$);}
 
       /* Standard hex number (0x1234) */
 
-    | EXPOP_HEX_NUMBER                              { UtStrtoul64 (DtParsertext, 16, &$$);}
+    | EXPOP_HEX_NUMBER                              { AcpiUtStrtoul64 (DtParsertext, 16, ACPI_MAX64_BYTE_WIDTH, &$$);}
 
-      /* TBD: Decimal number with prefix (0d1234) - Not supported by UtStrtoul64 at this time */
+      /* TBD: Decimal number with prefix (0d1234) - Not supported by strtoul64 at this time */
 
-    | EXPOP_DECIMAL_NUMBER                          { UtStrtoul64 (DtParsertext, 10, &$$);}
+    | EXPOP_DECIMAL_NUMBER                          { AcpiUtStrtoul64 (DtParsertext, 10, ACPI_MAX64_BYTE_WIDTH, &$$);}
     ;
 %%
 

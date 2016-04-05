@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -113,8 +113,6 @@
  *
  *****************************************************************************/
 
-#define __EXRESOLV_C__
-
 #include "acpi.h"
 #include "accommon.h"
 #include "amlcode.h"
@@ -193,8 +191,8 @@ AcpiExResolveToValue (
     if (ACPI_GET_DESCRIPTOR_TYPE (*StackPtr) == ACPI_DESC_TYPE_NAMED)
     {
         Status = AcpiExResolveNodeToValue (
-                        ACPI_CAST_INDIRECT_PTR (ACPI_NAMESPACE_NODE, StackPtr),
-                        WalkState);
+            ACPI_CAST_INDIRECT_PTR (ACPI_NAMESPACE_NODE, StackPtr),
+            WalkState);
         if (ACPI_FAILURE (Status))
         {
             return_ACPI_STATUS (Status);
@@ -248,13 +246,12 @@ AcpiExResolveObjectToValue (
         {
         case ACPI_REFCLASS_LOCAL:
         case ACPI_REFCLASS_ARG:
-
             /*
              * Get the local from the method's state info
              * Note: this increments the local's object reference count
              */
             Status = AcpiDsMethodDataGetValue (RefType,
-                            StackDesc->Reference.Value, WalkState, &ObjDesc);
+                StackDesc->Reference.Value, WalkState, &ObjDesc);
             if (ACPI_FAILURE (Status))
             {
                 return_ACPI_STATUS (Status);
@@ -271,7 +268,6 @@ AcpiExResolveObjectToValue (
             *StackPtr = ObjDesc;
             break;
 
-
         case ACPI_REFCLASS_INDEX:
 
             switch (StackDesc->Reference.TargetType)
@@ -280,7 +276,6 @@ AcpiExResolveObjectToValue (
 
                 /* Just return - do not dereference */
                 break;
-
 
             case ACPI_TYPE_PACKAGE:
 
@@ -302,7 +297,6 @@ AcpiExResolveObjectToValue (
                      * (i.e., dereference the package index)
                      * Delete the ref object, increment the returned object
                      */
-                    AcpiUtRemoveReference (StackDesc);
                     AcpiUtAddReference (ObjDesc);
                     *StackPtr = ObjDesc;
                 }
@@ -313,12 +307,12 @@ AcpiExResolveObjectToValue (
                      * the package, can't dereference it
                      */
                     ACPI_ERROR ((AE_INFO,
-                        "Attempt to dereference an Index to NULL package element Idx=%p",
+                        "Attempt to dereference an Index to "
+                        "NULL package element Idx=%p",
                         StackDesc));
                     Status = AE_AML_UNINITIALIZED_ELEMENT;
                 }
                 break;
-
 
             default:
 
@@ -331,7 +325,6 @@ AcpiExResolveObjectToValue (
                 break;
             }
             break;
-
 
         case ACPI_REFCLASS_REFOF:
         case ACPI_REFCLASS_DEBUG:
@@ -366,31 +359,30 @@ AcpiExResolveObjectToValue (
         default:
 
             ACPI_ERROR ((AE_INFO,
-                "Unknown Reference type 0x%X in %p", RefType, StackDesc));
+                "Unknown Reference type 0x%X in %p",
+                RefType, StackDesc));
             Status = AE_AML_INTERNAL;
             break;
         }
         break;
-
 
     case ACPI_TYPE_BUFFER:
 
         Status = AcpiDsGetBufferArguments (StackDesc);
         break;
 
-
     case ACPI_TYPE_PACKAGE:
 
         Status = AcpiDsGetPackageArguments (StackDesc);
         break;
-
 
     case ACPI_TYPE_BUFFER_FIELD:
     case ACPI_TYPE_LOCAL_REGION_FIELD:
     case ACPI_TYPE_LOCAL_BANK_FIELD:
     case ACPI_TYPE_LOCAL_INDEX_FIELD:
 
-        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC, "FieldRead SourceDesc=%p Type=%X\n",
+        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC,
+            "FieldRead SourceDesc=%p Type=%X\n",
             StackDesc, StackDesc->Common.Type));
 
         Status = AcpiExReadDataFromField (WalkState, StackDesc, &ObjDesc);
@@ -402,6 +394,7 @@ AcpiExResolveObjectToValue (
         break;
 
     default:
+
         break;
     }
 
@@ -432,8 +425,8 @@ AcpiExResolveMultiple (
     ACPI_OBJECT_TYPE        *ReturnType,
     ACPI_OPERAND_OBJECT     **ReturnDesc)
 {
-    ACPI_OPERAND_OBJECT     *ObjDesc = (void *) Operand;
-    ACPI_NAMESPACE_NODE     *Node;
+    ACPI_OPERAND_OBJECT     *ObjDesc = ACPI_CAST_PTR (void, Operand);
+    ACPI_NAMESPACE_NODE     *Node = ACPI_CAST_PTR (ACPI_NAMESPACE_NODE, Operand);
     ACPI_OBJECT_TYPE        Type;
     ACPI_STATUS             Status;
 
@@ -446,19 +439,30 @@ AcpiExResolveMultiple (
     switch (ACPI_GET_DESCRIPTOR_TYPE (ObjDesc))
     {
     case ACPI_DESC_TYPE_OPERAND:
+
         Type = ObjDesc->Common.Type;
         break;
 
     case ACPI_DESC_TYPE_NAMED:
+
         Type = ((ACPI_NAMESPACE_NODE *) ObjDesc)->Type;
-        ObjDesc = AcpiNsGetAttachedObject ((ACPI_NAMESPACE_NODE *) ObjDesc);
+        ObjDesc = AcpiNsGetAttachedObject (Node);
 
         /* If we had an Alias node, use the attached object for type info */
 
         if (Type == ACPI_TYPE_LOCAL_ALIAS)
         {
             Type = ((ACPI_NAMESPACE_NODE *) ObjDesc)->Type;
-            ObjDesc = AcpiNsGetAttachedObject ((ACPI_NAMESPACE_NODE *) ObjDesc);
+            ObjDesc = AcpiNsGetAttachedObject (
+                (ACPI_NAMESPACE_NODE *) ObjDesc);
+        }
+
+        if (!ObjDesc)
+        {
+            ACPI_ERROR ((AE_INFO,
+                "[%4.4s] Node is unresolved or uninitialized",
+                AcpiUtGetNodeName (Node)));
+            return_ACPI_STATUS (AE_AML_UNINITIALIZED_NODE);
         }
         break;
 
@@ -526,7 +530,6 @@ AcpiExResolveMultiple (
             }
             break;
 
-
         case ACPI_REFCLASS_INDEX:
 
             /* Get the type of this reference (index into another object) */
@@ -554,12 +557,10 @@ AcpiExResolveMultiple (
             }
             break;
 
-
         case ACPI_REFCLASS_TABLE:
 
             Type = ACPI_TYPE_DDB_HANDLE;
             goto Exit;
-
 
         case ACPI_REFCLASS_LOCAL:
         case ACPI_REFCLASS_ARG:
@@ -567,7 +568,7 @@ AcpiExResolveMultiple (
             if (ReturnDesc)
             {
                 Status = AcpiDsMethodDataGetValue (ObjDesc->Reference.Class,
-                            ObjDesc->Reference.Value, WalkState, &ObjDesc);
+                    ObjDesc->Reference.Value, WalkState, &ObjDesc);
                 if (ACPI_FAILURE (Status))
                 {
                     return_ACPI_STATUS (Status);
@@ -577,7 +578,7 @@ AcpiExResolveMultiple (
             else
             {
                 Status = AcpiDsMethodDataGetNode (ObjDesc->Reference.Class,
-                            ObjDesc->Reference.Value, WalkState, &Node);
+                    ObjDesc->Reference.Value, WalkState, &Node);
                 if (ACPI_FAILURE (Status))
                 {
                     return_ACPI_STATUS (Status);
@@ -592,7 +593,6 @@ AcpiExResolveMultiple (
             }
             break;
 
-
         case ACPI_REFCLASS_DEBUG:
 
             /* The Debug Object is of type "DebugObject" */
@@ -600,11 +600,11 @@ AcpiExResolveMultiple (
             Type = ACPI_TYPE_DEBUG_OBJECT;
             goto Exit;
 
-
         default:
 
             ACPI_ERROR ((AE_INFO,
-                "Unknown Reference Class 0x%2.2X", ObjDesc->Reference.Class));
+                "Unknown Reference Class 0x%2.2X",
+                ObjDesc->Reference.Class));
             return_ACPI_STATUS (AE_AML_INTERNAL);
         }
     }
@@ -636,7 +636,9 @@ Exit:
         break;
 
     default:
+
         /* No change to Type required */
+
         break;
     }
 

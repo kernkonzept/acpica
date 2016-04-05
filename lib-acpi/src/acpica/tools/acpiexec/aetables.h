@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -121,16 +121,7 @@
  * Miscellaneous pre-compiled AML ACPI tables to be installed
  */
 
-/* Default DSDT. This will be replaced with the input DSDT */
-
-static unsigned char DsdtCode[] =
-{
-    0x44,0x53,0x44,0x54,0x24,0x00,0x00,0x00,  /* 00000000    "DSDT$..." */
-    0x02,0x6F,0x49,0x6E,0x74,0x65,0x6C,0x00,  /* 00000008    ".oIntel." */
-    0x4E,0x75,0x6C,0x6C,0x44,0x53,0x44,0x54,  /* 00000010    "NullDSDT" */
-    0x01,0x00,0x00,0x00,0x49,0x4E,0x54,0x4C,  /* 00000018    "....INTL" */
-    0x04,0x12,0x08,0x20,
-};
+/* Local DSDT used only if not present in the input */
 
 static unsigned char LocalDsdtCode[] =
 {
@@ -284,6 +275,45 @@ unsigned char EcdtCode[] =
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,  /* 00000038    "........" */
     0x09,0x5C,0x5F,0x53,0x42,0x2E,0x50,0x43,  /* 00000040    ".\_SB.PC" */
     0x49,0x30,0x2E,0x45,0x43,0x00             /* 00000048    "I0.EC."   */
+};
+
+/* Test for multiple UEFI tables */
+
+unsigned char Uefi1Code[] =
+{
+    0x55,0x45,0x46,0x49,0x36,0x00,0x00,0x00,  /* 00000000    "UEFI6..." */
+    0x01,0x6E,0x20,0x49,0x6E,0x74,0x65,0x6C,  /* 00000008    ".n Intel" */
+    0x20,0x20,0x20,0x55,0x45,0x46,0x49,0x31,  /* 00000010    "   UEFI1" */
+    0x01,0x00,0x00,0x00,0x49,0x4E,0x54,0x4C,  /* 00000018    "....INTL" */
+    0x23,0x08,0x13,0x20,0x06,0x07,0x08,0x09,  /* 00000020    "#.. ...." */
+    0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,  /* 00000028    "........" */
+    0x0C,0x0D,0x0E,0x0F,0x36,0x00             /* 00000030    "....6."   */
+};
+
+unsigned char Uefi2Code[] =
+{
+    0x55,0x45,0x46,0x49,0xAA,0x00,0x00,0x00,  /* 00000000    "UEFI...." */
+    0x01,0xE0,0x20,0x49,0x6E,0x74,0x65,0x6C,  /* 00000008    ".. Intel" */
+    0x20,0x20,0x20,0x55,0x45,0x46,0x49,0x32,  /* 00000010    "   UEFI2" */
+    0x01,0x00,0x00,0x00,0x49,0x4E,0x54,0x4C,  /* 00000018    "....INTL" */
+    0x23,0x08,0x13,0x20,0x67,0x45,0x23,0x01,  /* 00000020    "#.. gE#." */
+    0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,  /* 00000028    "........" */
+    0x0C,0x0D,0x0E,0x0F,0x36,0x00,0x04,0x19,  /* 00000030    "....6..." */
+    0x00,0x56,0x34,0xF2,0x04,0x03,0x02,0x01,  /* 00000038    ".V4....." */
+    0x77,0x66,0x55,0x44,0x33,0x22,0x11,0x1E,  /* 00000040    "wfUD3".." */
+    0x1C,0x1F,0x14,0x10,0x0C,0x08,0x04,0xAB,  /* 00000048    "........" */
+    0x54,0x68,0x69,0x73,0x20,0x69,0x73,0x20,  /* 00000050    "This is " */
+    0x61,0x20,0x73,0x74,0x72,0x69,0x6E,0x67,  /* 00000058    "a string" */
+    0x00,0x5C,0x50,0x43,0x49,0x30,0x5C,0x41,  /* 00000060    ".\PCI0\A" */
+    0x42,0x43,0x44,0x00,0x36,0x00,0x55,0x00,  /* 00000068    "BCD.6.U." */
+    0x6E,0x00,0x69,0x00,0x63,0x00,0x6F,0x00,  /* 00000070    "n.i.c.o." */
+    0x64,0x00,0x65,0x00,0x20,0x00,0x53,0x00,  /* 00000078    "d.e. .S." */
+    0x74,0x00,0x72,0x00,0x69,0x00,0x6E,0x00,  /* 00000080    "t.r.i.n." */
+    0x67,0x00,0x00,0x00,0x58,0x5B,0x00,0x00,  /* 00000088    "g...X[.." */
+    0x00,0x00,0x00,0x00,0x41,0x42,0x43,0x44,  /* 00000090    "....ABCD" */
+    0x45,0x00,0x00,0x01,0x02,0x03,0x04,0x05,  /* 00000098    "E......." */
+    0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,  /* 000000A0    "........" */
+    0x0E,0x0F                                 /* 000000A8    ".."       */
 };
 
 
@@ -486,6 +516,55 @@ DefinitionBlock ("ssdt4.aml", "SSDT", 2, "Intel", "ssdt4", 0x00000004)
 [040h 0064   1]                   GPE Number : 09
 [041h 0065  13]                     Namepath : "\_SB.PCI0.EC"
 
+
+/* Test multiple UEFI support */
+
+[0004]                          Signature : "UEFI"    [UEFI Boot Optimization Table]
+[0004]                       Table Length : 00000036
+[0001]                           Revision : 01
+[0001]                           Checksum : 9B
+[0006]                             Oem ID : " Intel"
+[0008]                       Oem Table ID : "   UEFI1"
+[0004]                       Oem Revision : 00000001
+[0004]                    Asl Compiler ID : "INTL"
+[0004]              Asl Compiler Revision : 20100528
+
+[0016]                    UUID Identifier : 09080706-0504-0706-0809-0A0B0C0D0E0F
+[0002]                        Data Offset : 0000
+
+
+[004]                          Signature : "UEFI"    /* UEFI Boot Optimization Table */
+[004]                       Table Length : 00000036
+[001]                           Revision : 01
+[001]                           Checksum : 9B
+[006]                             Oem ID : " Intel"
+[008]                       Oem Table ID : "   UEFI2"
+[004]                       Oem Revision : 00000001
+[004]                    Asl Compiler ID : "INTL"
+[004]              Asl Compiler Revision : 20100528
+
+[016]                    UUID Identifier : 01234567-0504-0706-0809-0A0B0C0D0E0F
+[002]                        Data Offset : 0000
+
+                                   Label : StartRecord
+                                   UINT8 : 4
+                                  UINT16 : $EndRecord - $StartRecord  /* Should be 0x19 */
+                                  UINT24 : 123456 | F00000
+                                  UINT32 : 01020304
+                                  UINT56 : 11223344556677
+                                  UINT64 : 0102030405060708 * 4 - 200 / 100 | F0000
+                                   Label : EndRecord
+
+                                   UINT8 : AB
+                                  String : "This is a string"
+                              DevicePath : "\PCI0\ABCD"
+                                  UINT16 : $StartRecord
+                                 Unicode : "Unicode String"
+                                  UINT64 : $EndRecord * 128
+
+                                  Buffer : 41 42 43 44 45
+                                  String : ""
+                                    GUID : 03020100-0504-0706-0809-0A0B0C0D0E0F
 #endif
 
 #endif /* __AETABLES_H__ */

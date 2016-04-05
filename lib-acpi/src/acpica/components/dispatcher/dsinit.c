@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -113,8 +113,6 @@
  *
  *****************************************************************************/
 
-#define __DSINIT_C__
-
 #include "acpi.h"
 #include "accommon.h"
 #include "acdispat.h"
@@ -123,6 +121,7 @@
 
 #define _COMPONENT          ACPI_DISPATCHER
         ACPI_MODULE_NAME    ("dsinit")
+
 
 /* Local prototypes */
 
@@ -163,8 +162,8 @@ AcpiDsInitOneObject (
 {
     ACPI_INIT_WALK_INFO     *Info = (ACPI_INIT_WALK_INFO *) Context;
     ACPI_NAMESPACE_NODE     *Node = (ACPI_NAMESPACE_NODE *) ObjHandle;
-    ACPI_OBJECT_TYPE        Type;
     ACPI_STATUS             Status;
+    ACPI_OPERAND_OBJECT     *ObjDesc;
 
 
     ACPI_FUNCTION_ENTRY ();
@@ -183,9 +182,7 @@ AcpiDsInitOneObject (
 
     /* And even then, we are only interested in a few object types */
 
-    Type = AcpiNsGetType (ObjHandle);
-
-    switch (Type)
+    switch (AcpiNsGetType (ObjHandle))
     {
     case ACPI_TYPE_REGION:
 
@@ -200,20 +197,55 @@ AcpiDsInitOneObject (
         Info->OpRegionCount++;
         break;
 
-
     case ACPI_TYPE_METHOD:
-
+        /*
+         * Auto-serialization support. We will examine each method that is
+         * NotSerialized to determine if it creates any Named objects. If
+         * it does, it will be marked serialized to prevent problems if
+         * the method is entered by two or more threads and an attempt is
+         * made to create the same named object twice -- which results in
+         * an AE_ALREADY_EXISTS exception and method abort.
+         */
         Info->MethodCount++;
-        break;
+        ObjDesc = AcpiNsGetAttachedObject (Node);
+        if (!ObjDesc)
+        {
+            break;
+        }
 
+        /* Ignore if already serialized */
+
+        if (ObjDesc->Method.InfoFlags & ACPI_METHOD_SERIALIZED)
+        {
+            Info->SerialMethodCount++;
+            break;
+        }
+
+        if (AcpiGbl_AutoSerializeMethods)
+        {
+            /* Parse/scan method and serialize it if necessary */
+
+            AcpiDsAutoSerializeMethod (Node, ObjDesc);
+            if (ObjDesc->Method.InfoFlags & ACPI_METHOD_SERIALIZED)
+            {
+                /* Method was just converted to Serialized */
+
+                Info->SerialMethodCount++;
+                Info->SerializedMethodCount++;
+                break;
+            }
+        }
+
+        Info->NonSerialMethodCount++;
+        break;
 
     case ACPI_TYPE_DEVICE:
 
         Info->DeviceCount++;
         break;
 
-
     default:
+
         break;
     }
 
@@ -261,11 +293,10 @@ AcpiDsInitializeObjects (
 
     ACPI_DEBUG_PRINT ((ACPI_DB_DISPATCH,
         "**** Starting initialization of namespace objects ****\n"));
-    ACPI_DEBUG_PRINT_RAW ((ACPI_DB_INIT, "Parsing all Control Methods:"));
 
     /* Set all init info to zero */
 
-    ACPI_MEMSET (&Info, 0, sizeof (ACPI_INIT_WALK_INFO));
+    memset (&Info, 0, sizeof (ACPI_INIT_WALK_INFO));
 
     Info.OwnerId = OwnerId;
     Info.TableIndex = TableIndex;
@@ -283,7 +314,7 @@ AcpiDsInitializeObjects (
      * the namespace reader lock.
      */
     Status = AcpiNsWalkNamespace (ACPI_TYPE_ANY, StartNode, ACPI_UINT32_MAX,
-                ACPI_NS_WALK_UNLOCK, AcpiDsInitOneObject, NULL, &Info, NULL);
+        ACPI_NS_WALK_UNLOCK, AcpiDsInitOneObject, NULL, &Info, NULL);
     if (ACPI_FAILURE (Status))
     {
         ACPI_EXCEPTION ((AE_INFO, Status, "During WalkNamespace"));
@@ -296,13 +327,26 @@ AcpiDsInitializeObjects (
         return_ACPI_STATUS (Status);
     }
 
-    ACPI_DEBUG_PRINT_RAW ((ACPI_DB_INIT,
-        "\nTable [%4.4s](id %4.4X) - %u Objects with %u Devices %u Methods %u Regions\n",
-        Table->Signature, OwnerId, Info.ObjectCount,
-        Info.DeviceCount, Info.MethodCount, Info.OpRegionCount));
+    /* DSDT is always the first AML table */
 
-    ACPI_DEBUG_PRINT ((ACPI_DB_DISPATCH,
-        "%u Methods, %u Regions\n", Info.MethodCount, Info.OpRegionCount));
+    if (ACPI_COMPARE_NAME (Table->Signature, ACPI_SIG_DSDT))
+    {
+        ACPI_DEBUG_PRINT_RAW ((ACPI_DB_INIT,
+            "\nInitializing Namespace objects:\n"));
+    }
+
+    /* Summary of objects initialized */
+
+    ACPI_DEBUG_PRINT_RAW ((ACPI_DB_INIT,
+        "Table [%4.4s: %-8.8s] (id %.2X) - %4u Objects with %3u Devices, "
+        "%3u Regions, %4u Methods (%u/%u/%u Serial/Non/Cvt)\n",
+        Table->Signature, Table->OemTableId, OwnerId, Info.ObjectCount,
+        Info.DeviceCount,Info.OpRegionCount, Info.MethodCount,
+        Info.SerialMethodCount, Info.NonSerialMethodCount,
+        Info.SerializedMethodCount));
+
+    ACPI_DEBUG_PRINT ((ACPI_DB_DISPATCH, "%u Methods, %u Regions\n",
+        Info.MethodCount, Info.OpRegionCount));
 
     return_ACPI_STATUS (AE_OK);
 }

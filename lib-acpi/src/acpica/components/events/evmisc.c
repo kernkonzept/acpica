@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -147,6 +147,7 @@ BOOLEAN
 AcpiEvIsNotifyObject (
     ACPI_NAMESPACE_NODE     *Node)
 {
+
     switch (Node->Type)
     {
     case ACPI_TYPE_DEVICE:
@@ -158,6 +159,7 @@ AcpiEvIsNotifyObject (
         return (TRUE);
 
     default:
+
         return (FALSE);
     }
 }
@@ -252,10 +254,10 @@ AcpiEvQueueNotifyRequest (
     ACPI_DEBUG_PRINT ((ACPI_DB_INFO,
         "Dispatching Notify on [%4.4s] (%s) Value 0x%2.2X (%s) Node %p\n",
         AcpiUtGetNodeName (Node), AcpiUtGetTypeName (Node->Type),
-        NotifyValue, AcpiUtGetNotifyName (NotifyValue), Node));
+        NotifyValue, AcpiUtGetNotifyName (NotifyValue, ACPI_TYPE_ANY), Node));
 
-    Status = AcpiOsExecute (OSL_NOTIFY_HANDLER, AcpiEvNotifyDispatch,
-        Info);
+    Status = AcpiOsExecute (OSL_NOTIFY_HANDLER,
+        AcpiEvNotifyDispatch, Info);
     if (ACPI_FAILURE (Status))
     {
         AcpiUtDeleteGenericState (Info);
@@ -363,21 +365,23 @@ AcpiEvTerminate (
 
         Status = AcpiEvWalkGpeList (AcpiHwDisableGpeBlock, NULL);
 
-        /* Remove SCI handler */
-
-        Status = AcpiEvRemoveSciHandler ();
-        if (ACPI_FAILURE(Status))
-        {
-            ACPI_ERROR ((AE_INFO,
-                "Could not remove SCI handler"));
-        }
-
         Status = AcpiEvRemoveGlobalLockHandler ();
         if (ACPI_FAILURE(Status))
         {
             ACPI_ERROR ((AE_INFO,
                 "Could not remove Global Lock handler"));
         }
+
+        AcpiGbl_EventsInitialized = FALSE;
+    }
+
+    /* Remove SCI handlers */
+
+    Status = AcpiEvRemoveAllSciHandlers ();
+    if (ACPI_FAILURE(Status))
+    {
+        ACPI_ERROR ((AE_INFO,
+            "Could not remove SCI handler"));
     }
 
     /* Deallocate all handler objects installed within GPE info structs */

@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -119,6 +119,13 @@
 
 #define _COMPONENT          ASL_PREPROCESSOR
         ACPI_MODULE_NAME    ("prparser")
+
+void *                      AslLocalAllocate (unsigned int Size);
+
+/* Bison/yacc configuration */
+
+#undef alloca
+#define alloca              AslLocalAllocate
 
 int                         PrParserlex (void);
 int                         PrParserparse (void);
@@ -247,11 +254,11 @@ Expression
 
       /* Default base for a non-prefixed integer is 10 */
 
-    | EXPOP_NUMBER                                  { UtStrtoul64 (PrParsertext, 10, &$$);}
+    | EXPOP_NUMBER                                  { AcpiUtStrtoul64 (PrParsertext, 10, ACPI_MAX64_BYTE_WIDTH, &$$);}
 
       /* Standard hex number (0x1234) */
 
-    | EXPOP_HEX_NUMBER                              { UtStrtoul64 (PrParsertext, 16, &$$);}
+    | EXPOP_HEX_NUMBER                              { AcpiUtStrtoul64 (PrParsertext, 16, ACPI_MAX64_BYTE_WIDTH, &$$);}
     ;
 %%
 
@@ -278,8 +285,11 @@ void
 PrParsererror (
     char const              *Message)
 {
+
+    sprintf (StringBuffer, "Preprocessor Parser : %s (near line %u)",
+        Message, Gbl_CurrentLineNumber);
     DtError (ASL_ERROR, ASL_MSG_SYNTAX,
-        NULL, (char *) Message);
+        NULL, (char *) StringBuffer);
 }
 
 

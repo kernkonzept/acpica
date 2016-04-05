@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -113,8 +113,6 @@
  *
  *****************************************************************************/
 
-#define __EXRESNTE_C__
-
 #include "acpi.h"
 #include "accommon.h"
 #include "acdispat.h"
@@ -172,9 +170,9 @@ AcpiExResolveNodeToValue (
      * The stack pointer points to a ACPI_NAMESPACE_NODE (Node). Get the
      * object that is attached to the Node.
      */
-    Node       = *ObjectPtr;
+    Node = *ObjectPtr;
     SourceDesc = AcpiNsGetAttachedObject (Node);
-    EntryType  = AcpiNsGetType ((ACPI_HANDLE) Node);
+    EntryType = AcpiNsGetType ((ACPI_HANDLE) Node);
 
     ACPI_DEBUG_PRINT ((ACPI_DB_EXEC, "Entry=%p SourceDesc=%p [%s]\n",
          Node, SourceDesc, AcpiUtGetTypeName (EntryType)));
@@ -184,15 +182,15 @@ AcpiExResolveNodeToValue (
     {
         /* There is always exactly one level of indirection */
 
-        Node       = ACPI_CAST_PTR (ACPI_NAMESPACE_NODE, Node->Object);
+        Node = ACPI_CAST_PTR (ACPI_NAMESPACE_NODE, Node->Object);
         SourceDesc = AcpiNsGetAttachedObject (Node);
-        EntryType  = AcpiNsGetType ((ACPI_HANDLE) Node);
+        EntryType = AcpiNsGetType ((ACPI_HANDLE) Node);
         *ObjectPtr = Node;
     }
 
     /*
      * Several object types require no further processing:
-     * 1) Device/Thermal objects don't have a "real" subobject, return the Node
+     * 1) Device/Thermal objects don't have a "real" subobject, return Node
      * 2) Method locals and arguments have a pseudo-Node
      * 3) 10/2007: Added method type to assist with Package construction.
      */
@@ -206,9 +204,9 @@ AcpiExResolveNodeToValue (
 
     if (!SourceDesc)
     {
-        ACPI_ERROR ((AE_INFO, "No object attached to node %p",
-            Node));
-        return_ACPI_STATUS (AE_AML_NO_OPERAND);
+        ACPI_ERROR ((AE_INFO, "No object attached to node [%4.4s] %p",
+            Node->Name.Ascii, Node));
+        return_ACPI_STATUS (AE_AML_UNINITIALIZED_NODE);
     }
 
     /*
@@ -236,7 +234,6 @@ AcpiExResolveNodeToValue (
         }
         break;
 
-
     case ACPI_TYPE_BUFFER:
 
         if (SourceDesc->Common.Type != ACPI_TYPE_BUFFER)
@@ -256,7 +253,6 @@ AcpiExResolveNodeToValue (
         }
         break;
 
-
     case ACPI_TYPE_STRING:
 
         if (SourceDesc->Common.Type != ACPI_TYPE_STRING)
@@ -272,7 +268,6 @@ AcpiExResolveNodeToValue (
         AcpiUtAddReference (ObjDesc);
         break;
 
-
     case ACPI_TYPE_INTEGER:
 
         if (SourceDesc->Common.Type != ACPI_TYPE_INTEGER)
@@ -287,7 +282,6 @@ AcpiExResolveNodeToValue (
         ObjDesc = SourceDesc;
         AcpiUtAddReference (ObjDesc);
         break;
-
 
     case ACPI_TYPE_BUFFER_FIELD:
     case ACPI_TYPE_LOCAL_REGION_FIELD:
@@ -324,7 +318,6 @@ AcpiExResolveNodeToValue (
 
         return_ACPI_STATUS (AE_AML_OPERAND_TYPE);  /* Cannot be AE_TYPE */
 
-
     case ACPI_TYPE_LOCAL_REFERENCE:
 
         switch (SourceDesc->Reference.Class)
@@ -340,6 +333,7 @@ AcpiExResolveNodeToValue (
             break;
 
         default:
+
             /* No named references are allowed here */
 
             ACPI_ERROR ((AE_INFO,
@@ -349,7 +343,6 @@ AcpiExResolveNodeToValue (
             return_ACPI_STATUS (AE_AML_OPERAND_TYPE);
         }
         break;
-
 
     default:
 

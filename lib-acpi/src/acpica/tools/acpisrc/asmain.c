@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -113,16 +113,10 @@
  *
  *****************************************************************************/
 
-
 #include "acpisrc.h"
 #include "acapps.h"
 
 /* Local prototypes */
-
-int
-AsStricmp (
-    char                    *String1,
-    char                    *String2);
 
 int
 AsExaminePaths (
@@ -169,38 +163,10 @@ BOOLEAN                 Gbl_WidenDeclarations = FALSE;
 BOOLEAN                 Gbl_IgnoreLoneLineFeeds = FALSE;
 BOOLEAN                 Gbl_HasLoneLineFeeds = FALSE;
 BOOLEAN                 Gbl_Cleanup = FALSE;
+BOOLEAN                 Gbl_IgnoreTranslationEscapes = FALSE;
 
-
-/******************************************************************************
- *
- * FUNCTION:    AsStricmp
- *
- * DESCRIPTION: Implementation of the non-ANSI stricmp function (compare
- *              strings with no case sensitivity)
- *
- ******************************************************************************/
-
-int
-AsStricmp (
-    char                    *String1,
-    char                    *String2)
-{
-    int                     c1;
-    int                     c2;
-
-
-    do
-    {
-        c1 = tolower ((int) *String1);
-        c2 = tolower ((int) *String2);
-
-        String1++;
-        String2++;
-    }
-    while ((c1 == c2) && (c1));
-
-    return (c1 - c2);
-}
+#define AS_UTILITY_NAME             "ACPI Source Code Conversion Utility"
+#define AS_SUPPORTED_OPTIONS        "cdhilqsuv^y"
 
 
 /******************************************************************************
@@ -246,7 +212,7 @@ AsExaminePaths (
         return (0);
     }
 
-    if (!AsStricmp (Source, Target))
+    if (!AcpiUtStricmp (Source, Target))
     {
         printf ("Target path is the same as the source path, overwrite?\n");
         Response = getchar ();
@@ -310,8 +276,8 @@ AsDisplayStats (
     printf ("%8u Total bytes (%.1fK/file)\n",
         Gbl_TotalSize, ((double) Gbl_TotalSize/Gbl_Files)/1024);
     printf ("%8u Tabs found\n", Gbl_Tabs);
-    printf ("%8u Missing if/else braces\n", Gbl_MissingBraces);
-    printf ("%8u Non-ANSI comments found\n", Gbl_NonAnsiComments);
+    printf ("%8u Missing if/else/while braces\n", Gbl_MissingBraces);
+    printf ("%8u Non-ANSI // comments found\n", Gbl_NonAnsiComments);
     printf ("%8u Total Lines\n", Gbl_TotalLines);
     printf ("%8u Lines of code\n", Gbl_SourceLines);
     printf ("%8u Lines of non-comment whitespace\n", Gbl_WhiteLines);
@@ -327,7 +293,8 @@ AsDisplayStats (
     if ((Gbl_CommentLines + Gbl_NonAnsiComments) > 0)
     {
         printf ("%8.1f Ratio of code to comments\n",
-            ((float) Gbl_SourceLines / (float) (Gbl_CommentLines + Gbl_NonAnsiComments)));
+            ((float) Gbl_SourceLines /
+            (float) (Gbl_CommentLines + Gbl_NonAnsiComments)));
     }
 
     if (!Gbl_TotalLines)
@@ -361,13 +328,15 @@ AsDisplayUsage (
 
     ACPI_OPTION ("-c",          "Generate cleaned version of the source");
     ACPI_OPTION ("-h",          "Insert dual-license header into all modules");
+    ACPI_OPTION ("-i",          "Cleanup macro indentation");
     ACPI_OPTION ("-l",          "Generate Linux version of the source");
     ACPI_OPTION ("-u",          "Generate Custom source translation");
 
-    printf ("\n");
+    ACPI_USAGE_TEXT ("\n");
     ACPI_OPTION ("-d",          "Leave debug statements in code");
     ACPI_OPTION ("-s",          "Generate source statistics only");
-    ACPI_OPTION ("-v",          "Verbose mode");
+    ACPI_OPTION ("-v",          "Display version information");
+    ACPI_OPTION ("-vb",         "Verbose mode");
     ACPI_OPTION ("-y",          "Suppress file overwrite prompts");
 }
 
@@ -392,7 +361,9 @@ main (
     UINT32                  FileType;
 
 
-    printf (ACPI_COMMON_SIGNON ("ACPI Source Code Conversion Utility"));
+    ACPI_DEBUG_INITIALIZE (); /* For debug version only */
+    AcpiOsInitialize ();
+    printf (ACPI_COMMON_SIGNON (AS_UTILITY_NAME));
 
     if (argc < 2)
     {
@@ -402,9 +373,10 @@ main (
 
     /* Command line options */
 
-    while ((j = AcpiGetopt (argc, argv, "cdhlqsuvy")) != EOF) switch(j)
+    while ((j = AcpiGetopt (argc, argv, AS_SUPPORTED_OPTIONS)) != ACPI_OPT_END) switch(j)
     {
     case 'l':
+
         /* Linux code generation */
 
         printf ("Creating Linux source code\n");
@@ -414,6 +386,7 @@ main (
         break;
 
     case 'c':
+
         /* Cleanup code */
 
         printf ("Code cleanup\n");
@@ -422,18 +395,31 @@ main (
         break;
 
     case 'h':
+
         /* Inject Dual-license header */
 
         printf ("Inserting Dual-license header to all modules\n");
         ConversionTable = &LicenseConversionTable;
         break;
 
+    case 'i':
+
+        /* Cleanup wrong indent result */
+
+        printf ("Cleaning up macro indentation\n");
+        ConversionTable = &IndentConversionTable;
+        Gbl_IgnoreLoneLineFeeds = TRUE;
+        Gbl_IgnoreTranslationEscapes = TRUE;
+        break;
+
     case 's':
+
         /* Statistics only */
 
         break;
 
     case 'u':
+
         /* custom conversion  */
 
         printf ("Custom source translation\n");
@@ -441,30 +427,51 @@ main (
         break;
 
     case 'v':
-        /* Verbose mode */
 
-        Gbl_VerboseMode = TRUE;
+        switch (AcpiGbl_Optarg[0])
+        {
+        case '^':  /* -v: (Version): signon already emitted, just exit */
+
+            exit (0);
+
+        case 'b':
+
+            /* Verbose mode */
+
+            Gbl_VerboseMode = TRUE;
+            break;
+
+        default:
+
+            printf ("Unknown option: -v%s\n", AcpiGbl_Optarg);
+            return (-1);
+        }
+
         break;
 
     case 'y':
+
         /* Batch mode */
 
         Gbl_BatchMode = TRUE;
         break;
 
     case 'd':
+
         /* Leave debug statements in */
 
         Gbl_DebugStatementsMode = TRUE;
         break;
 
     case 'q':
+
         /* Quiet mode */
 
         Gbl_QuietMode = TRUE;
         break;
 
     default:
+
         AsDisplayUsage ();
         return (-1);
     }
@@ -522,17 +529,27 @@ main (
 
         if (strstr (SourcePath, ".h"))
         {
-            AsProcessOneFile (ConversionTable, NULL, TargetPath, 0, SourcePath, FILE_TYPE_HEADER);
+            AsProcessOneFile (ConversionTable, NULL, TargetPath, 0,
+                SourcePath, FILE_TYPE_HEADER);
+        }
+        else if (strstr (SourcePath, ".c"))
+        {
+            AsProcessOneFile (ConversionTable, NULL, TargetPath, 0,
+                SourcePath, FILE_TYPE_SOURCE);
+        }
+        else if (strstr (SourcePath, ".patch"))
+        {
+            AsProcessOneFile (ConversionTable, NULL, TargetPath, 0,
+                SourcePath, FILE_TYPE_PATCH);
         }
         else
         {
-            AsProcessOneFile (ConversionTable, NULL, TargetPath, 0, SourcePath, FILE_TYPE_SOURCE);
+            printf ("Unknown file type - %s\n", SourcePath);
         }
     }
 
     /* Always display final summary and stats */
 
     AsDisplayStats ();
-
     return (0);
 }

@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -113,8 +113,6 @@
  *
  *****************************************************************************/
 
-#define __UTADDRESS_C__
-
 #include "acpi.h"
 #include "accommon.h"
 #include "acnamesp.h"
@@ -191,10 +189,10 @@ AcpiUtAddAddressRange (
     AcpiGbl_AddressRangeList[SpaceId] = RangeInfo;
 
     ACPI_DEBUG_PRINT ((ACPI_DB_NAMES,
-        "\nAdded [%4.4s] address range: 0x%p-0x%p\n",
+        "\nAdded [%4.4s] address range: 0x%8.8X%8.8X-0x%8.8X%8.8X\n",
         AcpiUtGetNodeName (RangeInfo->RegionNode),
-        ACPI_CAST_PTR (void, Address),
-        ACPI_CAST_PTR (void, RangeInfo->EndAddress)));
+        ACPI_FORMAT_UINT64 (Address),
+        ACPI_FORMAT_UINT64 (RangeInfo->EndAddress)));
 
     (void) AcpiUtReleaseMutex (ACPI_MTX_NAMESPACE);
     return_ACPI_STATUS (AE_OK);
@@ -253,10 +251,10 @@ AcpiUtRemoveAddressRange (
             }
 
             ACPI_DEBUG_PRINT ((ACPI_DB_NAMES,
-                "\nRemoved [%4.4s] address range: 0x%p-0x%p\n",
+                "\nRemoved [%4.4s] address range: 0x%8.8X%8.8X-0x%8.8X%8.8X\n",
                 AcpiUtGetNodeName (RangeInfo->RegionNode),
-                ACPI_CAST_PTR (void, RangeInfo->StartAddress),
-                ACPI_CAST_PTR (void, RangeInfo->EndAddress)));
+                ACPI_FORMAT_UINT64 (RangeInfo->StartAddress),
+                ACPI_FORMAT_UINT64 (RangeInfo->EndAddress)));
 
             ACPI_FREE (RangeInfo);
             return_VOID;
@@ -320,10 +318,11 @@ AcpiUtCheckAddressRange (
     while (RangeInfo)
     {
         /*
-         * Check if the requested Address/Length overlaps this AddressRange.
-         * Four cases to consider:
+         * Check if the requested address/length overlaps this
+         * address range. There are four cases to consider:
          *
-         * 1) Input address/length is contained completely in the address range
+         * 1) Input address/length is contained completely in the
+         *    address range
          * 2) Input address/length overlaps range at the range start
          * 3) Input address/length overlaps range at the range end
          * 4) Input address/length completely encompasses the range
@@ -336,13 +335,16 @@ AcpiUtCheckAddressRange (
             OverlapCount++;
             if (Warn)   /* Optional warning message */
             {
-                Pathname = AcpiNsGetExternalPathname (RangeInfo->RegionNode);
+                Pathname = AcpiNsGetNormalizedPathname (RangeInfo->RegionNode, TRUE);
 
                 ACPI_WARNING ((AE_INFO,
-                    "0x%p-0x%p %s conflicts with Region %s %d",
-                    ACPI_CAST_PTR (void, Address),
-                    ACPI_CAST_PTR (void, EndAddress),
-                    AcpiUtGetRegionName (SpaceId), Pathname, OverlapCount));
+                    "%s range 0x%8.8X%8.8X-0x%8.8X%8.8X conflicts with OpRegion 0x%8.8X%8.8X-0x%8.8X%8.8X (%s)",
+                    AcpiUtGetRegionName (SpaceId),
+                    ACPI_FORMAT_UINT64 (Address),
+                    ACPI_FORMAT_UINT64 (EndAddress),
+                    ACPI_FORMAT_UINT64 (RangeInfo->StartAddress),
+                    ACPI_FORMAT_UINT64 (RangeInfo->EndAddress),
+                    Pathname));
                 ACPI_FREE (Pathname);
             }
         }

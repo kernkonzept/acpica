@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2012, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -156,7 +156,9 @@
  * Should the subsystem abort the loading of an ACPI table if the
  * table checksum is incorrect?
  */
+#ifndef ACPI_CHECKSUM_ABORT
 #define ACPI_CHECKSUM_ABORT             FALSE
+#endif
 
 /*
  * Generate a version of ACPICA that only supports "reduced hardware"
@@ -173,7 +175,9 @@
  *      ACPI PM timer
  *      FACS table (Waking vectors and Global Lock)
  */
+#ifndef ACPI_REDUCED_HARDWARE
 #define ACPI_REDUCED_HARDWARE           FALSE
+#endif
 
 
 /******************************************************************************
@@ -205,10 +209,6 @@
 /* Size of the root table array is increased by this increment */
 
 #define ACPI_ROOT_TABLE_SIZE_INCREMENT  4
-
-/* Maximum number of While() loop iterations before forced abort */
-
-#define ACPI_MAX_LOOP_ITERATIONS        0xFFFF
 
 /* Maximum sleep allowed via Sleep() operator */
 
@@ -266,6 +266,7 @@
 /* Maximum SpaceIds for Operation Regions */
 
 #define ACPI_MAX_ADDRESS_SPACE          255
+#define ACPI_NUM_DEFAULT_SPACES         4
 
 /* Array sizes. Used for range checking also */
 
@@ -290,11 +291,30 @@
 
 /******************************************************************************
  *
+ * Miscellaneous constants
+ *
+ *****************************************************************************/
+
+/* UUID constants */
+
+#define UUID_BUFFER_LENGTH          16 /* Length of UUID in memory */
+#define UUID_STRING_LENGTH          36 /* Total length of a UUID string */
+
+/* Positions for required hyphens (dashes) in UUID strings */
+
+#define UUID_HYPHEN1_OFFSET         8
+#define UUID_HYPHEN2_OFFSET         13
+#define UUID_HYPHEN3_OFFSET         18
+#define UUID_HYPHEN4_OFFSET         23
+
+
+/******************************************************************************
+ *
  * ACPI AML Debugger
  *
  *****************************************************************************/
 
-#define ACPI_DEBUGGER_MAX_ARGS          ACPI_METHOD_NUM_ARGS + 2 /* Max command line arguments */
+#define ACPI_DEBUGGER_MAX_ARGS          ACPI_METHOD_NUM_ARGS + 4 /* Max command line arguments */
 #define ACPI_DB_LINE_BUFFER_SIZE        512
 
 #define ACPI_DEBUGGER_COMMAND_PROMPT    '-'
