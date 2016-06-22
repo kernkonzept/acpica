@@ -187,13 +187,25 @@ extern const char                       *AcpiGbl_PtDecode[];
 /*
  * Common error message prefixes
  */
+#ifndef ACPI_MSG_ERROR
 #define ACPI_MSG_ERROR          "ACPI Error: "
+#endif
+#ifndef ACPI_MSG_EXCEPTION
 #define ACPI_MSG_EXCEPTION      "ACPI Exception: "
+#endif
+#ifndef ACPI_MSG_WARNING
 #define ACPI_MSG_WARNING        "ACPI Warning: "
+#endif
+#ifndef ACPI_MSG_INFO
 #define ACPI_MSG_INFO           "ACPI: "
+#endif
 
+#ifndef ACPI_MSG_BIOS_ERROR
 #define ACPI_MSG_BIOS_ERROR     "ACPI BIOS Error (bug): "
+#endif
+#ifndef ACPI_MSG_BIOS_WARNING
 #define ACPI_MSG_BIOS_WARNING   "ACPI BIOS Warning (bug): "
+#endif
 
 /*
  * Common message suffix
@@ -244,6 +256,25 @@ typedef struct acpi_pkg_info
 #define DB_WORD_DISPLAY     2
 #define DB_DWORD_DISPLAY    4
 #define DB_QWORD_DISPLAY    8
+
+
+/*
+ * utascii - ASCII utilities
+ */
+BOOLEAN
+AcpiUtValidNameseg (
+    char                    *Signature);
+
+BOOLEAN
+AcpiUtValidNameChar (
+    char                    Character,
+    UINT32                  Position);
+
+void
+AcpiUtCheckAndRepairAscii (
+    UINT8                   *Name,
+    char                    *RepairedName,
+    UINT32                  Count);
 
 
 /*
@@ -467,6 +498,14 @@ AcpiUtPtrExit (
     const char              *ModuleName,
     UINT32                  ComponentId,
     UINT8                   *Ptr);
+
+void
+AcpiUtStrExit (
+    UINT32                  LineNumber,
+    const char              *FunctionName,
+    const char              *ModuleName,
+    UINT32                  ComponentId,
+    const char              *String);
 
 void
 AcpiUtDebugDumpBuffer (
@@ -903,15 +942,6 @@ void
 UtConvertBackslashes (
     char                    *Pathname);
 #endif
-
-BOOLEAN
-AcpiUtValidAcpiName (
-    char                    *Name);
-
-BOOLEAN
-AcpiUtValidAcpiChar (
-    char                    Character,
-    UINT32                  Position);
 
 void
 AcpiUtRepairName (

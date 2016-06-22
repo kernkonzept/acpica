@@ -143,6 +143,7 @@ ACPICA_SRC_C		= \
 	tables/tbxfroot.c \
 	utilities/utaddress.c \
 	utilities/utalloc.c \
+	utilities/utascii.c \
 	utilities/utbuffer.c \
 	utilities/utcache.c \
 	utilities/utclib.c \
