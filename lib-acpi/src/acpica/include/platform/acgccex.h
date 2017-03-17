@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Name: acwinex.h - Extra OS specific defines, etc.
+ * Name: acgccex.h - Extra GCC specific defines, etc.
  *
  *****************************************************************************/
 
@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2017, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -113,12 +113,18 @@
  *
  *****************************************************************************/
 
-#ifndef __ACWINEX_H__
-#define __ACWINEX_H__
+#ifndef __ACGCCEX_H__
+#define __ACGCCEX_H__
 
-/* Windows uses VC */
-#ifdef _MSC_VER
-#include "acmsvcex.h"
+/*
+ * Some versions of gcc implement strchr() with a buggy macro. So,
+ * undef it here. Prevents error messages of this form (usually from the
+ * file getopt.c):
+ *
+ * error: logical '&&' with non-zero constant will always evaluate as true
+ */
+#ifdef strchr
+#undef strchr
 #endif
 
-#endif /* __ACWINEX_H__ */
+#endif /* __ACGCCEX_H__ */

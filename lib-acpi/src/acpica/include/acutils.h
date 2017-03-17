@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2017, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -296,14 +296,16 @@ AcpiUtStricmp (
 ACPI_STATUS
 AcpiUtStrtoul64 (
     char                    *String,
-    UINT32                  Base,
-    UINT32                  MaxIntegerByteWidth,
+    UINT32                  Flags,
     UINT64                  *RetInteger);
 
-/* Values for MaxIntegerByteWidth above */
-
-#define ACPI_MAX32_BYTE_WIDTH       4
-#define ACPI_MAX64_BYTE_WIDTH       8
+/*
+ * Values for Flags above
+ * Note: LIMIT values correspond to AcpiGbl_IntegerByteWidth values (4/8)
+ */
+#define ACPI_STRTOUL_32BIT          0x04    /* 4 bytes */
+#define ACPI_STRTOUL_64BIT          0x08    /* 8 bytes */
+#define ACPI_STRTOUL_BASE16         0x10    /* Default: Base10/16 */
 
 
 /*
@@ -353,10 +355,19 @@ const char *
 AcpiUtGetEventName (
     UINT32                  EventId);
 
+const char *
+AcpiUtGetArgumentTypeName (
+    UINT32                  ArgType);
+
 char
 AcpiUtHexToAsciiChar (
     UINT64                  Integer,
     UINT32                  Position);
+
+ACPI_STATUS
+AcpiUtAsciiToHexByte (
+    char                    *TwoAsciiChars,
+    UINT8                   *ReturnByte);
 
 UINT8
 AcpiUtAsciiCharToHex (
@@ -1137,48 +1148,6 @@ AcpiAhMatchHardwareId (
 const char *
 AcpiAhMatchUuid (
     UINT8                   *Data);
-
-
-/*
- * utprint - printf/vprintf output functions
- */
-const char *
-AcpiUtScanNumber (
-    const char              *String,
-    UINT64                  *NumberPtr);
-
-const char *
-AcpiUtPrintNumber (
-    char                    *String,
-    UINT64                  Number);
-
-int
-AcpiUtVsnprintf (
-    char                    *String,
-    ACPI_SIZE               Size,
-    const char              *Format,
-    va_list                 Args);
-
-int
-AcpiUtSnprintf (
-    char                    *String,
-    ACPI_SIZE               Size,
-    const char              *Format,
-    ...);
-
-#ifdef ACPI_APPLICATION
-int
-AcpiUtFileVprintf (
-    ACPI_FILE               File,
-    const char              *Format,
-    va_list                 Args);
-
-int
-AcpiUtFilePrintf (
-    ACPI_FILE               File,
-    const char              *Format,
-    ...);
-#endif
 
 
 /*

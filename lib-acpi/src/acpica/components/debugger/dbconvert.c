@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2017, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -393,7 +393,8 @@ AcpiDbConvertToObject (
     default:
 
         Object->Type = ACPI_TYPE_INTEGER;
-        Status = AcpiUtStrtoul64 (String, 16, AcpiGbl_IntegerByteWidth,
+        Status = AcpiUtStrtoul64 (String,
+            (AcpiGbl_IntegerByteWidth | ACPI_STRTOUL_BASE16),
             &Object->Integer.Value);
         break;
     }

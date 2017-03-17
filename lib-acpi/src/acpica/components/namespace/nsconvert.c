@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2017, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -156,7 +156,7 @@ AcpiNsConvertToInteger (
         /* String-to-Integer conversion */
 
         Status = AcpiUtStrtoul64 (OriginalObject->String.Pointer,
-            ACPI_ANY_BASE, AcpiGbl_IntegerByteWidth, &Value);
+            AcpiGbl_IntegerByteWidth, &Value);
         if (ACPI_FAILURE (Status))
         {
             return (Status);

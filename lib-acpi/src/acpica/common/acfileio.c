@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2017, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -115,10 +115,9 @@
 
 #include "acpi.h"
 #include "accommon.h"
-#include "acapps.h"
 #include "actables.h"
 #include "acutils.h"
-#include <errno.h>
+#include "acapps.h"
 
 #define _COMPONENT          ACPI_UTILITIES
         ACPI_MODULE_NAME    ("acfileio")
@@ -170,7 +169,7 @@ AcGetAllTablesFromFile (
     File = fopen (Filename, "rb");
     if (!File)
     {
-        perror ("Could not open input file");
+        fprintf (stderr, "Could not open input file: %s\n", Filename);
         if (errno == ENOENT)
         {
             return (AE_NOT_EXIST);
@@ -185,7 +184,7 @@ AcGetAllTablesFromFile (
     if (FileSize == ACPI_UINT32_MAX)
     {
         Status = AE_ERROR;
-        goto ErrorExit;
+        goto Exit;
     }
 
     fprintf (stderr,
@@ -197,7 +196,7 @@ AcGetAllTablesFromFile (
     if (FileSize < sizeof (ACPI_TABLE_HEADER))
     {
         Status = AE_BAD_HEADER;
-        goto ErrorExit;
+        goto Exit;
     }
 
     /* Check for an non-binary file */
@@ -207,7 +206,8 @@ AcGetAllTablesFromFile (
         fprintf (stderr,
             "    %s: File does not appear to contain a valid AML table\n",
             Filename);
-        return (AE_TYPE);
+        Status = AE_TYPE;
+        goto Exit;
     }
 
     /* Read all tables within the file */
@@ -226,23 +226,31 @@ AcGetAllTablesFromFile (
         }
         else if (Status == AE_TYPE)
         {
-            return (AE_OK);
+            Status = AE_OK;
+            goto Exit;
         }
         else if (ACPI_FAILURE (Status))
         {
-            goto ErrorExit;
+            goto Exit;
         }
 
         /* Print table header for iASL/disassembler only */
 
 #ifdef ACPI_ASL_COMPILER
 
-            AcpiTbPrintTableHeader (0, Table);
+        AcpiTbPrintTableHeader (0, Table);
 #endif
 
         /* Allocate and link a table descriptor */
 
         TableDesc = AcpiOsAllocate (sizeof (ACPI_NEW_TABLE_DESC));
+        if (!TableDesc)
+        {
+            AcpiOsFree (Table);
+            Status = AE_NO_MEMORY;
+            goto Exit;
+        }
+
         TableDesc->Table = Table;
         TableDesc->Next = NULL;
 
@@ -277,7 +285,7 @@ AcGetAllTablesFromFile (
         *ReturnListHead = ListHead;
     }
 
-ErrorExit:
+Exit:
     fclose(File);
     return (Status);
 }
@@ -337,10 +345,11 @@ AcGetOneTableFromFile (
 
     if (GetOnlyAmlTables)
     {
-        /* Table must be an AML table (DSDT/SSDT) or FADT */
-
-        if (!ACPI_COMPARE_NAME (TableHeader.Signature, ACPI_SIG_FADT) &&
-            !AcpiUtIsAmlTable (&TableHeader))
+        /*
+         * Table must be an AML table (DSDT/SSDT).
+         * Used for iASL -e option only.
+         */
+        if (!AcpiUtIsAmlTable (&TableHeader))
         {
             fprintf (stderr,
                 "    %s: Table [%4.4s] is not an AML table - ignoring\n",
@@ -352,7 +361,7 @@ AcGetOneTableFromFile (
 
     /* Allocate a buffer for the entire table */
 
-    Table = AcpiOsAllocate ((size_t) TableHeader.Length);
+    Table = AcpiOsAllocate ((ACPI_SIZE) TableHeader.Length);
     if (!Table)
     {
         return (AE_NO_MEMORY);
@@ -460,13 +469,13 @@ AcValidateTableHeader (
     long                    TableOffset)
 {
     ACPI_TABLE_HEADER       TableHeader;
-    size_t                  Actual;
+    ACPI_SIZE               Actual;
     long                    OriginalOffset;
     UINT32                  FileSize;
     UINT32                  i;
 
 
-    ACPI_FUNCTION_TRACE ("AcValidateTableHeader");
+    ACPI_FUNCTION_TRACE (AcValidateTableHeader);
 
 
     /* Read a potential table header */

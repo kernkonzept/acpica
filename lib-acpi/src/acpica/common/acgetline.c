@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2017, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -118,8 +118,6 @@
 #include "amlcode.h"
 #include "acparser.h"
 #include "acdebug.h"
-
-#include <stdio.h>
 
 /*
  * This is an os-independent implementation of line-editing services needed

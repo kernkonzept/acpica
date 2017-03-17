@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2017, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -179,13 +179,11 @@ AcpiUtCreateList (
     ACPI_MEMORY_LIST        *Cache;
 
 
-    Cache = AcpiOsAllocate (sizeof (ACPI_MEMORY_LIST));
+    Cache = AcpiOsAllocateZeroed (sizeof (ACPI_MEMORY_LIST));
     if (!Cache)
     {
         return (AE_NO_MEMORY);
     }
-
-    memset (Cache, 0, sizeof (ACPI_MEMORY_LIST));
 
     Cache->ListName = ListName;
     Cache->ObjectSize = ObjectSize;

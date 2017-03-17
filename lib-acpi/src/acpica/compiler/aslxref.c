@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2017, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -562,20 +562,17 @@ XfNamespaceLocateBegin (
         RegisterNumber = Op->Asl.AmlOpcode - AML_ARG0; /* 0x68 through 0x6F */
         MethodArgs = Node->MethodArgs;
 
+        /* Mark this Arg as referenced */
+
+        MethodArgs[RegisterNumber].Flags |= ASL_ARG_REFERENCED;
+        MethodArgs[RegisterNumber].Op = Op;
+
         if (Op->Asl.CompileFlags & NODE_IS_TARGET)
         {
             /* Arg is being initialized */
 
             MethodArgs[RegisterNumber].Flags |= ASL_ARG_INITIALIZED;
-            MethodArgs[RegisterNumber].Op = Op;
-
-            return_ACPI_STATUS (AE_OK);
         }
-
-        /* Mark this Arg as referenced */
-
-        MethodArgs[RegisterNumber].Flags |= ASL_ARG_REFERENCED;
-        MethodArgs[RegisterNumber].Op = Op;
 
         return_ACPI_STATUS (AE_OK);
     }
@@ -898,16 +895,18 @@ XfNamespaceLocateBegin (
         /*
          * A reference to a method within one of these opcodes is not an
          * invocation of the method, it is simply a reference to the method.
+         *
+         * September 2016: Removed DeRefOf from this list
          */
         if ((Op->Asl.Parent) &&
-           ((Op->Asl.Parent->Asl.ParseOpcode == PARSEOP_REFOF)      ||
-            (Op->Asl.Parent->Asl.ParseOpcode == PARSEOP_DEREFOF)    ||
+            ((Op->Asl.Parent->Asl.ParseOpcode == PARSEOP_REFOF)     ||
             (Op->Asl.Parent->Asl.ParseOpcode == PARSEOP_PACKAGE)    ||
             (Op->Asl.Parent->Asl.ParseOpcode == PARSEOP_VAR_PACKAGE)||
             (Op->Asl.Parent->Asl.ParseOpcode == PARSEOP_OBJECTTYPE)))
         {
             return_ACPI_STATUS (AE_OK);
         }
+
         /*
          * There are two types of method invocation:
          * 1) Invocation with arguments -- the parser recognizes this

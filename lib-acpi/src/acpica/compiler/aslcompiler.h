@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2017, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -134,7 +134,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
@@ -984,7 +983,7 @@ LkFindUnreferencedObjects (
     void);
 
 /*
- * aslmain - startup
+ * aslhelp - help screens
  */
 void
 Usage (
@@ -992,6 +991,10 @@ Usage (
 
 void
 AslFilenameHelp (
+    void);
+
+void
+AslDisassemblyHelp (
     void);
 
 

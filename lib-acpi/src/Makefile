@@ -167,10 +167,10 @@ ACPICA_SRC_C		= \
 	utilities/utosi.c \
 	utilities/utownerid.c \
 	utilities/utpredef.c \
-	utilities/utprint.c \
 	utilities/utresrc.c \
 	utilities/utstate.c \
 	utilities/utstring.c \
+	utilities/utstrtoul64.c \
 	utilities/utuuid.c \
 	utilities/utxface.c \
 	utilities/utxferror.c \

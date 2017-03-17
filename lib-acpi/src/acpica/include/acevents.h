@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2017, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -186,6 +186,11 @@ AcpiEvUpdateGpeEnableMask (
 ACPI_STATUS
 AcpiEvEnableGpe (
     ACPI_GPE_EVENT_INFO     *GpeEventInfo);
+
+ACPI_STATUS
+AcpiEvMaskGpe (
+    ACPI_GPE_EVENT_INFO     *GpeEventInfo,
+    BOOLEAN                 IsMasked);
 
 ACPI_STATUS
 AcpiEvAddGpeReference (
@@ -403,8 +408,7 @@ AcpiEvDefaultRegionSetup (
 
 ACPI_STATUS
 AcpiEvInitializeRegion (
-    ACPI_OPERAND_OBJECT     *RegionObj,
-    BOOLEAN                 AcpiNsLocked);
+    ACPI_OPERAND_OBJECT     *RegionObj);
 
 
 /*

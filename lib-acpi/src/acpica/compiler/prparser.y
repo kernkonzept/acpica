@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2017, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -254,11 +254,11 @@ Expression
 
       /* Default base for a non-prefixed integer is 10 */
 
-    | EXPOP_NUMBER                                  { AcpiUtStrtoul64 (PrParsertext, 10, ACPI_MAX64_BYTE_WIDTH, &$$);}
+    | EXPOP_NUMBER                                  { AcpiUtStrtoul64 (PrParsertext, ACPI_STRTOUL_64BIT, &$$);}
 
       /* Standard hex number (0x1234) */
 
-    | EXPOP_HEX_NUMBER                              { AcpiUtStrtoul64 (PrParsertext, 16, ACPI_MAX64_BYTE_WIDTH, &$$);}
+    | EXPOP_HEX_NUMBER                              { AcpiUtStrtoul64 (PrParsertext, (ACPI_STRTOUL_BASE16 | ACPI_STRTOUL_64BIT), &$$);}
     ;
 %%
 

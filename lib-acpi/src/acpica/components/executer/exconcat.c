@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2017, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -237,7 +237,8 @@ AcpiExDoConcatenate (
     {
     case ACPI_TYPE_INTEGER:
 
-        Status = AcpiExConvertToInteger (LocalOperand1, &TempOperand1, 16);
+        Status = AcpiExConvertToInteger (LocalOperand1, &TempOperand1,
+            ACPI_STRTOUL_BASE16);
         break;
 
     case ACPI_TYPE_BUFFER:

@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2017, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -228,7 +228,7 @@ AcpiTbValidateRsdp (
  *
  ******************************************************************************/
 
-ACPI_STATUS
+ACPI_STATUS ACPI_INIT_FUNCTION
 AcpiFindRootPointer (
     ACPI_PHYSICAL_ADDRESS   *TableAddress)
 {
@@ -334,7 +334,7 @@ AcpiFindRootPointer (
     return_ACPI_STATUS (AE_NOT_FOUND);
 }
 
-ACPI_EXPORT_SYMBOL (AcpiFindRootPointer)
+ACPI_EXPORT_SYMBOL_INIT (AcpiFindRootPointer)
 
 
 /*******************************************************************************

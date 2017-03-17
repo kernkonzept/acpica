@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2017, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -114,7 +114,6 @@
  *****************************************************************************/
 
 #include "aecommon.h"
-#include "errno.h"
 
 #define _COMPONENT          ACPI_TOOLS
         ACPI_MODULE_NAME    ("aemain")
@@ -131,7 +130,6 @@
  * Windows: The setargv.obj module must be linked in to automatically
  * expand wildcards.
  */
-extern BOOLEAN              AcpiGbl_DebugTimeout;
 
 /* Local prototypes */
 
@@ -139,10 +137,6 @@ static int
 AeDoOptions (
     int                     argc,
     char                    **argv);
-
-static ACPI_STATUS
-AcpiDbRunBatchMode (
-    void);
 
 
 #define AE_BUFFER_SIZE              1024
@@ -166,6 +160,8 @@ BOOLEAN                     AcpiGbl_LoadTestTables = FALSE;
 BOOLEAN                     AcpiGbl_AeLoadOnly = FALSE;
 static UINT8                AcpiGbl_ExecutionMode = AE_MODE_COMMAND_LOOP;
 static char                 BatchBuffer[AE_BUFFER_SIZE];    /* Batch command buffer */
+static char                 AeBuildDate[] = __DATE__;
+static char                 AeBuildTime[] = __TIME__;
 
 #define ACPIEXEC_NAME               "AML Execution/Debug Utility"
 #define AE_SUPPORTED_OPTIONS        "?b:d:e:f^ghi:lm^rv^:x:"
@@ -229,6 +225,7 @@ usage (
     ACPI_OPTION ("-ei",                 "Enable additional tests for ACPICA interfaces");
     ACPI_OPTION ("-el",                 "Enable loading of additional test tables");
     ACPI_OPTION ("-em",                 "Enable grouping of module-level code");
+    ACPI_OPTION ("-ep",                 "Enable TermList parsing for scope objects");
     ACPI_OPTION ("-es",                 "Enable Interpreter Slack Mode");
     ACPI_OPTION ("-et",                 "Enable debug semaphore timeout");
     printf ("\n");
@@ -241,6 +238,7 @@ usage (
     ACPI_OPTION ("-l",                  "Load tables and namespace only");
     ACPI_OPTION ("-r",                  "Use hardware-reduced FADT V5");
     ACPI_OPTION ("-v",                  "Display version information");
+    ACPI_OPTION ("-vd",                 "Display build date and time");
     ACPI_OPTION ("-vi",                 "Verbose initialization output");
     ACPI_OPTION ("-vr",                 "Verbose region handler output");
     ACPI_OPTION ("-x <DebugLevel>",     "Debug output level");
@@ -359,6 +357,11 @@ AeDoOptions (
             AcpiGbl_GroupModuleLevelCode = TRUE;
             break;
 
+        case 'p':
+
+            AcpiGbl_ParseTableAsTermList = TRUE;
+            break;
+
         case 's':
 
             AcpiGbl_EnableInterpreterSlack = TRUE;
@@ -473,6 +476,11 @@ AeDoOptions (
             (void) AcpiOsTerminate ();
             return (1);
 
+        case 'd':
+
+            printf ("Build date/time: %s %s\n", AeBuildDate, AeBuildTime);
+            return (1);
+
         case 'i':
 
             AcpiDbgLevel |= ACPI_LV_INIT_NAMES;
@@ -538,8 +546,13 @@ main (
     AcpiDbgLevel = ACPI_NORMAL_DEFAULT;
     AcpiDbgLayer = 0xFFFFFFFF;
 
-    /* Init ACPICA and start debugger thread */
-
+    /*
+     * Initialize ACPICA and start debugger thread.
+     *
+     * NOTE: After ACPICA initialization, AcpiTerminate MUST be called
+     * before this procedure exits -- otherwise, the console may be
+     * left in an incorrect state.
+     */
     Status = AcpiInitializeSubsystem ();
     ACPI_CHECK_OK (AcpiInitializeSubsystem, Status);
     if (ACPI_FAILURE (Status))
@@ -565,8 +578,7 @@ main (
     if (argc < 2)
     {
         usage ();
-        (void) AcpiOsTerminate ();
-        return (0);
+        goto NormalExit;
     }
 
     /* Get the command line options */
@@ -598,7 +610,7 @@ main (
         /* Get all ACPI AML tables in this file */
 
         Status = AcGetAllTablesFromFile (argv[AcpiGbl_Optind],
-            ACPI_GET_ONLY_AML_TABLES, &ListHead);
+            ACPI_GET_ALL_TABLES, &ListHead);
         if (ACPI_FAILURE (Status))
         {
             ExitCode = -1;
@@ -621,7 +633,6 @@ main (
     /* Install all of the ACPI tables */
 
     Status = AeInstallTables ();
-
     if (ACPI_FAILURE (Status))
     {
         printf ("**** Could not install ACPI tables, %s\n",
@@ -650,7 +661,13 @@ main (
 
     /*
      * Main initialization for ACPICA subsystem
-     * TBD: Need a way to call this after the ACPI table "LOAD" command
+     * TBD: Need a way to call this after the ACPI table "LOAD" command?
+     *
+     * NOTE: This initialization does not match the _Lxx and _Exx methods
+     * to individual GPEs, as there are no real GPEs when the hardware
+     * is simulated - because there is no namespace until AeLoadTables is
+     * executed. This may have to change if AcpiExec is ever run natively
+     * on actual hardware (such as under UEFI).
      */
     Status = AcpiEnableSubsystem (InitFlags);
     if (ACPI_FAILURE (Status))
@@ -714,89 +731,28 @@ EnterDebugger:
     default:
     case AE_MODE_COMMAND_LOOP:
 
-        AcpiDbUserCommands (ACPI_DEBUGGER_COMMAND_PROMPT, NULL);
+        AcpiRunDebugger (NULL);
         break;
 
     case AE_MODE_BATCH_MULTIPLE:
 
-        AcpiDbRunBatchMode ();
+        AcpiRunDebugger (BatchBuffer);
         break;
 
     case AE_MODE_BATCH_SINGLE:
 
         AcpiDbExecute (BatchBuffer, NULL, NULL, EX_NO_SINGLE_STEP);
-
-        /* Shut down the debugger */
-
-        AcpiTerminateDebugger ();
-        Status = AcpiTerminate ();
         break;
     }
 
-    (void) AcpiOsTerminate ();
-    return (0);
+    /* Shut down the debugger and ACPICA */
 
+    AcpiTerminateDebugger ();
+
+NormalExit:
+    ExitCode = 0;
 
 ErrorExit:
     (void) AcpiOsTerminate ();
     return (ExitCode);
-}
-
-
-/******************************************************************************
- *
- * FUNCTION:    AcpiDbRunBatchMode
- *
- * PARAMETERS:  BatchCommandLine    - A semicolon separated list of commands
- *                                    to be executed.
- *                                    Use only commas to separate elements of
- *                                    particular command.
- * RETURN:      Status
- *
- * DESCRIPTION: For each command of list separated by ';' prepare the command
- *              buffer and pass it to AcpiDbCommandDispatch.
- *
- *****************************************************************************/
-
-static ACPI_STATUS
-AcpiDbRunBatchMode (
-    void)
-{
-    ACPI_STATUS             Status;
-    char                    *Ptr = BatchBuffer;
-    char                    *Cmd = Ptr;
-    UINT8                   Run = 0;
-
-
-    AcpiGbl_MethodExecuting = FALSE;
-    AcpiGbl_StepToNextCall = FALSE;
-
-    while (*Ptr)
-    {
-        if (*Ptr == ',')
-        {
-            /* Convert commas to spaces */
-            *Ptr = ' ';
-        }
-        else if (*Ptr == ';')
-        {
-            *Ptr = '\0';
-            Run = 1;
-        }
-
-        Ptr++;
-
-        if (Run || (*Ptr == '\0'))
-        {
-            (void) AcpiDbCommandDispatch (Cmd, NULL, NULL);
-            Run = 0;
-            Cmd = Ptr;
-        }
-    }
-
-    /* Shut down the debugger */
-
-    AcpiTerminateDebugger ();
-    Status = AcpiTerminate ();
-    return (Status);
 }

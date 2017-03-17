@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Module Name: oslibcfs - C library OSL for file I/O
+ * Module Name: efihello - very simple ACPICA/EFI integration example
  *
  *****************************************************************************/
 
@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2016, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2017, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -114,217 +114,83 @@
  *****************************************************************************/
 
 #include "acpi.h"
-#include <stdio.h>
-#include <stdarg.h>
-
-#define _COMPONENT          ACPI_OS_SERVICES
-        ACPI_MODULE_NAME    ("oslibcfs")
+#include "accommon.h"
+#include "acapps.h"
 
 
-/*******************************************************************************
+#define LINE_SIZE           256
+static char                 LineBuffer[LINE_SIZE];
+
+/******************************************************************************
  *
- * FUNCTION:    AcpiOsOpenFile
+ * FUNCTION:    main
  *
- * PARAMETERS:  Path                - File path
- *              Modes               - File operation type
- *
- * RETURN:      File descriptor.
- *
- * DESCRIPTION: Open a file for reading (ACPI_FILE_READING) or/and writing
- *              (ACPI_FILE_WRITING).
- *
- ******************************************************************************/
-
-ACPI_FILE
-AcpiOsOpenFile (
-    const char              *Path,
-    UINT8                   Modes)
-{
-    ACPI_FILE               File;
-    UINT32                  i = 0;
-    char                    ModesStr[4];
-
-
-    if (Modes & ACPI_FILE_READING)
-    {
-        ModesStr[i++] = 'r';
-    }
-    if (Modes & ACPI_FILE_WRITING)
-    {
-        ModesStr[i++] = 'w';
-    }
-
-    if (Modes & ACPI_FILE_BINARY)
-    {
-        ModesStr[i++] = 'b';
-    }
-
-    ModesStr[i++] = '\0';
-
-    File = fopen (Path, ModesStr);
-    if (!File)
-    {
-        perror ("Could not open file");
-    }
-
-    return (File);
-}
-
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiOsCloseFile
- *
- * PARAMETERS:  File                - An open file descriptor
- *
- * RETURN:      None.
- *
- * DESCRIPTION: Close a file opened via AcpiOsOpenFile.
- *
- ******************************************************************************/
-
-void
-AcpiOsCloseFile (
-    ACPI_FILE               File)
-{
-
-    fclose (File);
-}
-
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiOsReadFile
- *
- * PARAMETERS:  File                - An open file descriptor
- *              Buffer              - Data buffer
- *              Size                - Data block size
- *              Count               - Number of data blocks
- *
- * RETURN:      Number of bytes actually read.
- *
- * DESCRIPTION: Read from a file.
- *
- ******************************************************************************/
-
-int
-AcpiOsReadFile (
-    ACPI_FILE               File,
-    void                    *Buffer,
-    ACPI_SIZE               Size,
-    ACPI_SIZE               Count)
-{
-    int                     Length;
-
-
-    Length = fread (Buffer, Size, Count, File);
-    if (Length < 0)
-    {
-        perror ("Error reading file");
-    }
-
-    return (Length);
-}
-
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiOsWriteFile
- *
- * PARAMETERS:  File                - An open file descriptor
- *              Buffer              - Data buffer
- *              Size                - Data block size
- *              Count               - Number of data blocks
- *
- * RETURN:      Number of bytes actually written.
- *
- * DESCRIPTION: Write to a file.
- *
- ******************************************************************************/
-
-int
-AcpiOsWriteFile (
-    ACPI_FILE               File,
-    void                    *Buffer,
-    ACPI_SIZE               Size,
-    ACPI_SIZE               Count)
-{
-    int                     Length;
-
-
-    Length = fwrite (Buffer, Size, Count, File);
-    if (Length < 0)
-    {
-        perror ("Error writing file");
-    }
-
-    return (Length);
-}
-
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiOsGetFileOffset
- *
- * PARAMETERS:  File                - An open file descriptor
- *
- * RETURN:      Current file pointer position.
- *
- * DESCRIPTION: Get current file offset.
- *
- ******************************************************************************/
-
-long
-AcpiOsGetFileOffset (
-    ACPI_FILE               File)
-{
-    long                    Offset;
-
-
-    Offset = ftell (File);
-    return (Offset);
-}
-
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiOsSetFileOffset
- *
- * PARAMETERS:  File                - An open file descriptor
- *              Offset              - New file offset
- *              From                - From begin/end of file
+ * PARAMETERS:  argc/argv           - Standard argc/argv
  *
  * RETURN:      Status
  *
- * DESCRIPTION: Set current file offset.
+ * DESCRIPTION: C main function for efihello
  *
  ******************************************************************************/
 
-ACPI_STATUS
-AcpiOsSetFileOffset (
-    ACPI_FILE               File,
-    long                    Offset,
-    UINT8                   From)
+#ifndef _GNU_EFI
+int ACPI_SYSTEM_XFACE
+main (
+    int                     argc,
+    char                    *argv[])
+#else
+int ACPI_SYSTEM_XFACE
+acpi_main (
+    int                     argc,
+    char                    *argv[])
+#endif
 {
-    int                     Ret = 0;
+    ACPI_FILE               File;
+    BOOLEAN                 DoCloseFile = FALSE;
+    char                    *Result;
 
 
-    if (From == ACPI_FILE_BEGIN)
+    AcpiOsInitialize ();
+
+    printf ("argc=%d\n", argc);
+
+    if (argc > 1)
     {
-        Ret = fseek (File, Offset, SEEK_SET);
-    }
-
-    if (From == ACPI_FILE_END)
-    {
-        Ret = fseek (File, Offset, SEEK_END);
-    }
-
-    if (Ret < 0)
-    {
-        return (AE_ERROR);
+        File = fopen (argv[1], "r");
+        if (!File)
+        {
+            printf ("Failed to open %s.\n", argv[1]);
+            return (-1);
+        }
+        DoCloseFile = TRUE;
     }
     else
     {
-        return (AE_OK);
+        File = stdin;
     }
+
+    while (1)
+    {
+        Result = fgets (LineBuffer, LINE_SIZE, File);
+        if (!Result)
+        {
+            printf ("Failed to read %s.\n", argv[1]);
+            fclose (File);
+            return (-2);
+        }
+
+        printf ("%s", LineBuffer);
+
+        if (strncmp (Result, "exit", 4) == 0)
+        {
+            break;
+        }
+    }
+
+
+    if (DoCloseFile)
+    {
+        fclose (File);
+    }
+    return (0);
 }
