@@ -1,7 +1,10 @@
 #include <l4/sys/compiler.h>
+#include <l4/sys/kip>
 
 __BEGIN_DECLS
 #include "acpi.h"
+#include "accommon.h"
+#include "actables.h"
 #include "acpiosxf.h"
 #include "actypes.h"
 __END_DECLS
@@ -143,8 +146,30 @@ AcpiOsGetRootPointer (void)
 {
   ACPI_PHYSICAL_ADDRESS table_address = 0;
   printf("Find root Pointer\n");
+
+  using namespace L4::Kip;
+
+  for (auto const &md: Mem_desc::all(l4re_kip()))
+    {
+      if ((md.type() == Mem_desc::Info)
+          && (md.sub_type() == Mem_desc::Info_acpi_rsdp))
+        {
+          void *rsdp = AcpiOsMapMemory(md.start(), md.size());
+          if (!rsdp)
+            break;
+          UINT8 *found_rsdp = AcpiTbScanMemoryForRsdp((UINT8 *)rsdp, md.size());
+          AcpiOsUnmapMemory(rsdp, md.size());
+          if (found_rsdp)
+            {
+              printf("Found root Pointer: %lx\n", md.start());
+              return md.start();
+            }
+          break;
+        }
+    }
+
   AcpiFindRootPointer(&table_address);
-  printf("Found root Pointer: %llx\n", (unsigned long long)table_address);
+  printf("Found root Pointer: %llx\n", table_address);
   return table_address;
 }
 
