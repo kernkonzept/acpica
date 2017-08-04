@@ -144,7 +144,7 @@ AcpiOsGetRootPointer (void)
   ACPI_PHYSICAL_ADDRESS table_address = 0;
   printf("Find root Pointer\n");
   AcpiFindRootPointer(&table_address);
-  printf("Find root Pointer: %llx\n", (unsigned long long)table_address);
+  printf("Found root Pointer: %llx\n", (unsigned long long)table_address);
   return table_address;
 }
 
