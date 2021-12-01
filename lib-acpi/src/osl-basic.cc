@@ -154,15 +154,16 @@ AcpiOsGetRootPointer (void)
       if ((md.type() == Mem_desc::Info)
           && (md.sub_type() == Mem_desc::Info_acpi_rsdp))
         {
-          void *rsdp = AcpiOsMapMemory(md.start(), md.size());
+          UINT8 *rsdp = (UINT8 *)AcpiOsMapMemory(md.start(), md.size());
           if (!rsdp)
             break;
-          UINT8 *found_rsdp = AcpiTbScanMemoryForRsdp((UINT8 *)rsdp, md.size());
-          AcpiOsUnmapMemory(rsdp, md.size());
+          UINT8 *found_rsdp = AcpiTbScanMemoryForRsdp(rsdp, md.size());
+          AcpiOsUnmapMemory((void *)rsdp, md.size());
           if (found_rsdp)
             {
-              printf("Found root Pointer: %lx\n", md.start());
-              return md.start();
+              table_address = md.start() + (found_rsdp - rsdp);
+              printf("Found root Pointer: %llx\n", table_address);
+              return table_address;
             }
           break;
         }
