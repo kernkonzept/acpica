@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2019, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -154,7 +154,7 @@
 
 /* Current ACPICA subsystem version in YYYYMMDD format */
 
-#define ACPI_CA_VERSION                 0x20190816
+#define ACPI_CA_VERSION                 0x20210930
 
 #include "acconfig.h"
 #include "actypes.h"
@@ -664,7 +664,13 @@ AcpiInstallTable (
 ACPI_EXTERNAL_RETURN_STATUS (
 ACPI_STATUS
 AcpiLoadTable (
-    ACPI_TABLE_HEADER       *Table))
+    ACPI_TABLE_HEADER       *Table,
+    UINT32                  *TableIdx))
+
+ACPI_EXTERNAL_RETURN_STATUS (
+ACPI_STATUS
+AcpiUnloadTable (
+    UINT32                  TableIndex))
 
 ACPI_EXTERNAL_RETURN_STATUS (
 ACPI_STATUS
@@ -1101,6 +1107,10 @@ AcpiEnableAllRuntimeGpes (
 ACPI_HW_DEPENDENT_RETURN_STATUS (
 ACPI_STATUS
 AcpiEnableAllWakeupGpes (
+    void))
+
+ACPI_HW_DEPENDENT_RETURN_UINT32 (
+    UINT32                  AcpiAnyGpeStatusSet (
     void))
 
 ACPI_HW_DEPENDENT_RETURN_STATUS (

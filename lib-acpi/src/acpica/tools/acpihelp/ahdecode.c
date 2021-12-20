@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2019, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -155,6 +155,7 @@
 #include "acpihelp.h"
 #include "acpredef.h"
 
+BOOLEAN                  AslGbl_VerboseErrors = TRUE;
 
 /* Local prototypes */
 
@@ -302,7 +303,7 @@ AhFindPredefinedNames (
 
     if (!NamePrefix || (*NamePrefix == '*'))
     {
-        Found = AhDisplayPredefinedName (NULL, 0);
+        (void) AhDisplayPredefinedName (NULL, 0);
         return;
     }
 
@@ -376,7 +377,7 @@ AhDoSpecialNames (
     case 'E':
         if (Name[2] == 'J')
         {
-            if (isdigit (Name[3]) || (Name[3] == 'X'))
+            if (isdigit ((int) Name[3]) || (Name[3] == 'X'))
             {
                 /* _EJx */
 
@@ -385,12 +386,12 @@ AhDoSpecialNames (
             }
         }
 
-        /* Fallthrough */
+        ACPI_FALLTHROUGH;
 
     case 'L':
     case 'Q':
     case 'W':
-        if ((isxdigit (Name[2]) && isxdigit (Name[3]))
+        if ((isxdigit ((int) Name[2]) && isxdigit ((int) Name[3]))
                 ||
             ((Name[2] == 'X') && (Name[3] == 'X')))
         {
@@ -404,7 +405,7 @@ AhDoSpecialNames (
     case 'A':
         if ((Name[2] == 'C') || (Name[2] == 'L'))
         {
-            if (isdigit (Name[3]) || (Name[3] == 'X'))
+            if (isdigit ((int) Name[3]) || (Name[3] == 'X'))
             {
                 /* _ACx or _ALx */
 
@@ -708,11 +709,11 @@ AhDisplayTables (
     UINT32                  i = 0;
 
 
-    printf ("Known ACPI tables:\n");
+    printf ("Known/Supported ACPI tables:\n");
 
     for (Info = AcpiGbl_SupportedTables; Info->Signature; Info++)
     {
-        printf ("%8s : %s\n", Info->Signature, Info->Description);
+        printf ("%8u) %s : %s\n", i + 1, Info->Signature, Info->Description);
         i++;
     }
 

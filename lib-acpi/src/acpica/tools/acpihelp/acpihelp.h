@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2019, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -225,7 +225,8 @@ typedef enum
     AH_DISPLAY_DEVICE_IDS,
     AH_DISPLAY_UUIDS,
     AH_DISPLAY_TABLES,
-    AH_DISPLAY_DIRECTIVES
+    AH_DISPLAY_DIRECTIVES,
+    AH_DECODE_ASL_EXCEPTION
 
 } AH_OPTION_TYPES;
 
@@ -294,6 +295,10 @@ AhDecodeAmlOpcode (
 
 void
 AhDecodeException (
+    char                    *Name);
+
+void
+AhDecodeAslException (
     char                    *Name);
 
 void

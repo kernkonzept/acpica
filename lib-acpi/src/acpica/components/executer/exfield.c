@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2019, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -167,7 +167,7 @@
 #define ACPI_INVALID_PROTOCOL_ID        0x80
 #define ACPI_MAX_PROTOCOL_ID            0x0F
 
-const UINT8     AcpiProtocolLengths[] =
+static const UINT8      AcpiProtocolLengths[] =
 {
     ACPI_INVALID_PROTOCOL_ID,   /* 0 - reserved */
     ACPI_INVALID_PROTOCOL_ID,   /* 1 - reserved */
@@ -246,7 +246,8 @@ AcpiExGetProtocolBufferLength (
  * RETURN:      Status
  *
  * DESCRIPTION: Read from a named field. Returns either an Integer or a
- *              Buffer, depending on the size of the field.
+ *              Buffer, depending on the size of the field and whether if a
+ *              field is created by the CreateField() operator.
  *
  ******************************************************************************/
 
@@ -294,7 +295,8 @@ AcpiExReadDataFromField (
     else if ((ObjDesc->Common.Type == ACPI_TYPE_LOCAL_REGION_FIELD) &&
         (ObjDesc->Field.RegionObj->Region.SpaceId == ACPI_ADR_SPACE_SMBUS ||
          ObjDesc->Field.RegionObj->Region.SpaceId == ACPI_ADR_SPACE_GSBUS ||
-         ObjDesc->Field.RegionObj->Region.SpaceId == ACPI_ADR_SPACE_IPMI))
+         ObjDesc->Field.RegionObj->Region.SpaceId == ACPI_ADR_SPACE_IPMI  ||
+         ObjDesc->Field.RegionObj->Region.SpaceId == ACPI_ADR_SPACE_PLATFORM_RT))
     {
         /* SMBus, GSBus, IPMI serial */
 
@@ -310,12 +312,17 @@ AcpiExReadDataFromField (
      * the use of arithmetic operators on the returned value if the
      * field size is equal or smaller than an Integer.
      *
+     * However, all buffer fields created by CreateField operator needs to
+     * remain as a buffer to match other AML interpreter implementations.
+     *
      * Note: Field.length is in bits.
      */
     BufferLength = (ACPI_SIZE) ACPI_ROUND_BITS_UP_TO_BYTES (
         ObjDesc->Field.BitLength);
 
-    if (BufferLength > AcpiGbl_IntegerByteWidth)
+    if (BufferLength > AcpiGbl_IntegerByteWidth ||
+        (ObjDesc->Common.Type == ACPI_TYPE_BUFFER_FIELD &&
+        ObjDesc->BufferField.IsCreateField))
     {
         /* Field is too large for an Integer, create a Buffer instead */
 
@@ -461,7 +468,8 @@ AcpiExWriteDataToField (
     else if ((ObjDesc->Common.Type == ACPI_TYPE_LOCAL_REGION_FIELD) &&
         (ObjDesc->Field.RegionObj->Region.SpaceId == ACPI_ADR_SPACE_SMBUS ||
          ObjDesc->Field.RegionObj->Region.SpaceId == ACPI_ADR_SPACE_GSBUS ||
-         ObjDesc->Field.RegionObj->Region.SpaceId == ACPI_ADR_SPACE_IPMI))
+         ObjDesc->Field.RegionObj->Region.SpaceId == ACPI_ADR_SPACE_IPMI  ||
+         ObjDesc->Field.RegionObj->Region.SpaceId == ACPI_ADR_SPACE_PLATFORM_RT))
     {
         /* SMBus, GSBus, IPMI serial */
 

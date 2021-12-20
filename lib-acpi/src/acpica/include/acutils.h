@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2019, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -171,6 +171,7 @@ extern const char                       *AcpiGbl_MaxDecode[];
 extern const char                       *AcpiGbl_MemDecode[];
 extern const char                       *AcpiGbl_MinDecode[];
 extern const char                       *AcpiGbl_MtpDecode[];
+extern const char                       *AcpiGbl_PhyDecode[];
 extern const char                       *AcpiGbl_RngDecode[];
 extern const char                       *AcpiGbl_RwDecode[];
 extern const char                       *AcpiGbl_ShrDecode[];
@@ -290,10 +291,11 @@ typedef struct acpi_pkg_info
 
 /* AcpiUtDumpBuffer */
 
-#define DB_BYTE_DISPLAY     1
-#define DB_WORD_DISPLAY     2
-#define DB_DWORD_DISPLAY    4
-#define DB_QWORD_DISPLAY    8
+#define DB_BYTE_DISPLAY      0x01
+#define DB_WORD_DISPLAY      0x02
+#define DB_DWORD_DISPLAY     0x04
+#define DB_QWORD_DISPLAY     0x08
+#define DB_DISPLAY_DATA_ONLY 0x10
 
 
 /*
@@ -1266,6 +1268,11 @@ void
 AcpiUtConvertStringToUuid (
     char                    *InString,
     UINT8                   *UuidBuffer);
+
+ACPI_STATUS
+AcpiUtConvertUuidToString (
+    char                    *UuidBuffer,
+    char                    *OutString);
 #endif
 
 #endif /* _ACUTILS_H */

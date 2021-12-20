@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2019, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -194,8 +194,8 @@
 #define AX_LINE_BUFFER_SIZE         256
 #define AX_MIN_BLOCK_HEADER_LENGTH  6   /* strlen ("DSDT @") */
 #define AX_HEX_DATA_LENGTH          49  /*  (3 * 16) + 1 for the colon delimiter */
-#define AX_IS_TABLE_BLOCK_HEADER    (strlen (Gbl_LineBuffer) < AX_HEX_DATA_LENGTH) && \
-                                    (strstr (Gbl_LineBuffer, " @ "))
+#define AX_IS_TABLE_BLOCK_HEADER    (strlen (Gbl_LineBuffer) < AX_HEX_DATA_LENGTH && \
+                                    strstr (Gbl_LineBuffer, " @ "))
 
 
 typedef struct AxTableInfo

@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2019, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -274,6 +274,9 @@
 
 /* warn C4131: uses old-style declarator (iASL compiler only) */
 #pragma warning(disable:4459)
+
+/* warn c4200: allow flexible arrays (of zero length) */
+#pragma warning(disable:4200)
 
 #if _MSC_VER > 1200 /* Versions above VC++ 6 */
 #pragma warning( disable : 4295 ) /* needed for acpredef.h array */

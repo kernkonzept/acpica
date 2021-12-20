@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2019, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -601,7 +601,9 @@ AcpiDmFindOrphanDescending (
         return (AE_OK);
     }
 
+#ifdef ACPI_UNDER_DEVELOPMENT
     OpInfo = AcpiPsGetOpcodeInfo (Op->Common.AmlOpcode);
+#endif
 
     switch (Op->Common.AmlOpcode)
     {
@@ -1100,7 +1102,7 @@ AcpiDmCommonDescendingOp (
     /* Switch/Case conversion */
 
     Status = AcpiDmProcessSwitch (Op);
-    return (AE_OK);
+    return (Status);
 }
 
 

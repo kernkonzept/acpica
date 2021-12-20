@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2019, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -261,18 +261,11 @@ DtDoCompile (
     UtEndEvent (Event);
 
     FileNode = FlGetCurrentFileNode ();
-    if (!FileNode)
-    {
-        fprintf (stderr, "Summary for %s could not be generated",
-            AslGbl_Files[ASL_FILE_INPUT].Filename);
-    }
-    else
-    {
-        FileNode->TotalLineCount = AslGbl_CurrentLineNumber;
-        FileNode->OriginalInputFileSize = AslGbl_InputByteCount;
-        DbgPrint (ASL_PARSE_OUTPUT, "Line count: %u input file size: %u\n",
-                FileNode->TotalLineCount, FileNode->OriginalInputFileSize);
-    }
+
+    FileNode->TotalLineCount = AslGbl_CurrentLineNumber;
+    FileNode->OriginalInputFileSize = AslGbl_InputByteCount;
+    DbgPrint (ASL_PARSE_OUTPUT, "Line count: %u input file size: %u\n",
+            FileNode->TotalLineCount, FileNode->OriginalInputFileSize);
 
     if (ACPI_FAILURE (Status))
     {
@@ -303,11 +296,8 @@ DtDoCompile (
 
     /* Save the compile time statistics to the current file node */
 
-    if (FileNode)
-    {
-        FileNode->TotalFields = AslGbl_InputFieldCount;
-        FileNode->OutputByteLength = AslGbl_TableLength;
-    }
+    FileNode->TotalFields = AslGbl_InputFieldCount;
+    FileNode->OutputByteLength = AslGbl_TableLength;
 
     return (Status);
 }
@@ -572,7 +562,7 @@ DtCompileTable (
     ACPI_STATUS             Status = AE_OK;
 
 
-    if (!Field)
+    if (!Field || !Info)
     {
         return (AE_BAD_PARAMETER);
     }
@@ -642,6 +632,14 @@ DtCompileTable (
 
         FieldType = DtGetFieldType (Info);
         AslGbl_InputFieldCount++;
+
+        if (FieldType != DT_FIELD_TYPE_INLINE_SUBTABLE &&
+            strcmp (Info->Name, LocalField->Name))
+        {
+            sprintf (AslGbl_MsgBuffer, "found \"%s\" expected \"%s\"",
+                LocalField->Name, Info->Name);
+            DtError (ASL_ERROR, ASL_MSG_INVALID_LABEL, LocalField, AslGbl_MsgBuffer);
+        }
 
         switch (FieldType)
         {

@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2019, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -324,7 +324,8 @@
 
 #if defined(__ia64__)    || (defined(__x86_64__) && !defined(__ILP32__)) ||\
     defined(__aarch64__) || defined(__PPC64__) ||\
-    defined(__s390x__)
+    defined(__s390x__) ||\
+    (defined(__riscv) && (defined(__LP64__) || defined(_LP64)))
 #define ACPI_MACHINE_WIDTH          64
 #define COMPILER_DEPENDENT_INT64    long
 #define COMPILER_DEPENDENT_UINT64   unsigned long

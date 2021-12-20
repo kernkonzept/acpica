@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2019, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -560,7 +560,13 @@ vsnprintf (
 
 
     Pos = String;
-    End = String + Size;
+
+
+    if (Size != ACPI_UINT32_MAX) {
+        End = String + Size;
+    } else {
+        End = ACPI_CAST_PTR(char, ACPI_UINT32_MAX);
+    }
 
     for (; *Format; ++Format)
     {
@@ -724,7 +730,7 @@ vsnprintf (
         case 'X':
 
             Type |= ACPI_FORMAT_UPPER;
-            /* FALLTHROUGH */
+            ACPI_FALLTHROUGH;
 
         case 'x':
 

@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2019, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -204,6 +204,8 @@ static ACPI_ADR_SPACE_TYPE  AcpiGbl_SpaceIdList[] =
     ACPI_ADR_SPACE_IPMI,
     ACPI_ADR_SPACE_GPIO,
     ACPI_ADR_SPACE_GSBUS,
+    ACPI_ADR_SPACE_PLATFORM_COMM,
+    ACPI_ADR_SPACE_PLATFORM_RT,
     ACPI_ADR_SPACE_DATA_TABLE,
     ACPI_ADR_SPACE_FIXED_HARDWARE
 };
@@ -713,7 +715,6 @@ AcpiDbDisplayResults (
         return;
     }
 
-    ObjDesc = WalkState->MethodDesc;
     Node  = WalkState->MethodNode;
 
     if (WalkState->Results)
@@ -773,7 +774,6 @@ AcpiDbDisplayCallingTree (
         return;
     }
 
-    Node = WalkState->MethodNode;
     AcpiOsPrintf ("Current Control Method Call Tree\n");
 
     while (WalkState)

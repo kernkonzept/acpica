@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2019, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -216,6 +216,7 @@ static ACPI_ADR_SPACE_TYPE  SpaceIdList[] =
     ACPI_ADR_SPACE_GPIO,
     ACPI_ADR_SPACE_GSBUS,
     ACPI_ADR_SPACE_PLATFORM_COMM,
+    ACPI_ADR_SPACE_PLATFORM_RT,
     ACPI_ADR_SPACE_FIXED_HARDWARE,
     ACPI_ADR_SPACE_USER_DEFINED1,
     ACPI_ADR_SPACE_USER_DEFINED2

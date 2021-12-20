@@ -9,7 +9,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2018, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -153,7 +153,6 @@
 #include "aslcompiler.h"
 #include "dtcompilerparser.y.h"
 
-YYSTYPE DtCompilerlval;
 
 #define _COMPONENT          ACPI_COMPILER
         ACPI_MODULE_NAME    ("dtcompilerscanner")
@@ -161,18 +160,20 @@ YYSTYPE DtCompilerlval;
 /* handle locations */
 
 int DtCompilerParsercolumn = 1;
+int DtLabelByteOffset = 0;
 int DtCompilerParserByteOffset = 0;
 
+UINT32 DtTokenFirstLine = 0;
+UINT32 DtTokenFirstColumn = 0;
+
 #define YY_USER_ACTION \
-            DtCompilerParserlloc.first_line = DtCompilerParserlloc.last_line = DtCompilerParserlineno; \
-            DtCompilerParserlloc.first_column = DtCompilerParsercolumn; \
-            DtCompilerParserlloc.first_byte_offset = DtCompilerParserByteOffset; \
-            DtCompilerParserlloc.last_column = DtCompilerParsercolumn + DtCompilerParserleng-1; \
+            DtTokenFirstLine = DtCompilerParserlineno; \
+            DtTokenFirstColumn = DtCompilerParsercolumn; \
             DtCompilerParsercolumn += DtCompilerParserleng; \
             DtCompilerParserByteOffset += DtCompilerParserleng; \
             DbgPrint (ASL_PARSE_OUTPUT,\
-                "user action occurred. DtCompilerParserlloc.first_line: %u offset: %u\n",\
-                DtCompilerParserlloc.first_line, DtCompilerParserlloc.first_byte_offset);
+                "user action occurred. DtCompilerParserlloc.first_line: %u\n",\
+                DtTokenFirstLine);
 %}
 
 %option nounput noinput yylineno
@@ -236,7 +237,11 @@ CommentField    {LabelName}{WhiteSpace}*:{WhiteSpace}{Comment}?$
     int size = strlen (DtCompilerParsertext);
     s=UtLocalCacheCalloc (size + 1);
     AcpiUtSafeStrncpy (s, DtCompilerParsertext, size + 1);
-    DtCompilerParserlval.s = s;
+    DtCompilerParserlval.u = (DT_TABLE_UNIT *) UtLocalCacheCalloc (sizeof (DT_TABLE_UNIT));
+    DtCompilerParserlval.u->Value = s;
+    DtCompilerParserlval.u->Line = DtCompilerParserlineno;
+    DtCompilerParserlval.u->Column = DtCompilerParsercolumn;
+    DtLabelByteOffset = DtCompilerParserByteOffset;
     DbgPrint (ASL_PARSE_OUTPUT, "Label: %s\n", s);
     return (DT_PARSEOP_LABEL);
 }

@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2019, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -206,6 +206,46 @@ UtIsBigEndianMachine (
 }
 
 
+/*******************************************************************************
+ *
+ * FUNCTION:    UtIsIdInteger
+ *
+ * PARAMETERS:  Pointer to an ACPI ID (HID, CID) string
+ *
+ * RETURN:      TRUE if string is an integer
+ *              FALSE if string is not an integer
+ *
+ * DESCRIPTION: Determine whether the input ACPI ID string can be converted to
+ *              an integer value.
+ *
+ ******************************************************************************/
+
+BOOLEAN
+UtIsIdInteger (
+    UINT8                   *Target)
+{
+    UINT32                  i;
+
+
+    /* The first three characters of the string must be alphabetic */
+
+    for (i = 0; i < 3; i++)
+    {
+        if (!isalpha ((int) Target[i]))
+        {
+            break;
+        }
+    }
+
+    if (i < 3)
+    {
+        return (TRUE);
+    }
+
+    return (FALSE);
+}
+
+
 /******************************************************************************
  *
  * FUNCTION:    UtQueryForOverwrite
@@ -223,7 +263,7 @@ UtQueryForOverwrite (
     char                    *Pathname)
 {
     struct stat             StatInfo;
-    int                     InChar = 0x34;
+    int                     InChar;
 
 
     if (!stat (Pathname, &StatInfo))
@@ -298,7 +338,7 @@ UtNodeIsDescendantOf (
 
 /*******************************************************************************
  *
- * FUNCTION:    UtGetParentMethod
+ * FUNCTION:    UtGetParentMethodNode
  *
  * PARAMETERS:  Node                    - Namespace node for any object
  *
@@ -309,8 +349,8 @@ UtNodeIsDescendantOf (
  *
  ******************************************************************************/
 
-void *
-UtGetParentMethod (
+ACPI_NAMESPACE_NODE *
+UtGetParentMethodNode (
     ACPI_NAMESPACE_NODE     *Node)
 {
     ACPI_NAMESPACE_NODE     *ParentNode;
@@ -340,6 +380,41 @@ UtGetParentMethod (
 
 /*******************************************************************************
  *
+ * FUNCTION:    UtGetParentMethodOp
+ *
+ * PARAMETERS:  Op                      - Parse Op to be checked
+ *
+ * RETURN:      Control method Op if found. NULL otherwise
+ *
+ * DESCRIPTION: Find the control method parent of a parse op. Returns NULL if
+ *              the input Op is not within a control method.
+ *
+ ******************************************************************************/
+
+ACPI_PARSE_OBJECT *
+UtGetParentMethodOp (
+    ACPI_PARSE_OBJECT       *Op)
+{
+    ACPI_PARSE_OBJECT       *NextOp;
+
+
+    NextOp = Op->Asl.Parent;
+    while (NextOp)
+    {
+        if (NextOp->Asl.AmlOpcode == AML_METHOD_OP)
+        {
+            return (NextOp);
+        }
+
+        NextOp = NextOp->Asl.Parent;
+    }
+
+    return (NULL); /* No parent method found */
+}
+
+
+/*******************************************************************************
+ *
  * FUNCTION:    UtDisplaySupportedTables
  *
  * PARAMETERS:  None
@@ -359,18 +434,20 @@ UtDisplaySupportedTables (
 
 
     printf ("\nACPI tables supported by iASL version %8.8X:\n"
-        "  (Compiler, Disassembler, Template Generator)\n\n",
+        "  (Compiler, Disassembler, Template Generator)\n",
         ACPI_CA_VERSION);
 
     /* All ACPI tables with the common table header */
 
-    printf ("\n  Supported ACPI tables:\n");
+    printf ("\nKnown/Supported ACPI tables:\n");
     for (TableData = AcpiGbl_SupportedTables, i = 1;
          TableData->Signature; TableData++, i++)
     {
         printf ("%8u) %s    %s\n", i,
             TableData->Signature, TableData->Description);
     }
+
+    printf ("\nTotal %u ACPI tables\n\n", i-1);
 }
 
 
@@ -567,11 +644,6 @@ UtDisplayOneSummary (
     /* Summary of main input and output files */
 
     FileNode = FlGetCurrentFileNode ();
-    if (!FileNode)
-    {
-        fprintf (stderr, "Summary could not be generated");
-        return;
-    }
 
     if (FileNode->ParserErrorDetected)
     {
@@ -1044,14 +1116,16 @@ UtDoConstant (
 {
     ACPI_STATUS             Status;
     UINT64                  ConvertedInteger;
-    char                    ErrBuf[64];
+    char                    ErrBuf[128];
+    const ACPI_EXCEPTION_INFO *ExceptionInfo;
 
 
     Status = AcpiUtStrtoul64 (String, &ConvertedInteger);
     if (ACPI_FAILURE (Status))
     {
-        sprintf (ErrBuf, "While creating 64-bit constant: %s\n",
-            AcpiFormatException (Status));
+        ExceptionInfo = AcpiUtValidateException ((ACPI_STATUS) Status);
+        sprintf (ErrBuf, " %s while converting to 64-bit integer",
+            ExceptionInfo->Description);
 
         AslCommonError (ASL_ERROR, ASL_MSG_SYNTAX, AslGbl_CurrentLineNumber,
             AslGbl_LogicalLineNumber, AslGbl_CurrentLineOffset,
