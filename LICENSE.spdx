@@ -8,7 +8,7 @@ SPDXVersion: SPDX-2.1
 DataLicense: CC0-1.0
 SPDXID: SPDXRef-Document
 DocumentNamespace: spdx:kernkonzept/acpica-0556455a-e7e7-11e8-856f-28d24461b5b9
-DocumentName: LICENSE.spdx
+DocumentName: acpica
 
 Creator: Organization: Kernkonzept GmbH (info@kernkonzept.com)
 
