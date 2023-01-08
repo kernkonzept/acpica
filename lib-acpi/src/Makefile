@@ -191,7 +191,7 @@ DEFINES += -DL4_ACPICA
 
 include $(L4DIR)/mk/lib.mk
 
-CPPFLAGS += -Wno-unused-parameter
+WARNINGS += -Wno-unused-parameter -Wno-null-pointer-subtraction
 
 main.o: dsdt-static.hex
 vpath dsdt-static.dsl $(PKGDIR)/server/lib-acpi/src/
