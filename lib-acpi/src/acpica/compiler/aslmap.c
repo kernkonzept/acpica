@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2023, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -379,8 +379,8 @@ const ASL_MAPPING_ENTRY     AslKeywordMapping [] =
 /* LLESSEQUAL */                OP_TABLE_ENTRY (AML_LOGICAL_LESS_EQUAL_OP,  0,                              0,                  ACPI_BTYPE_INTEGER),
 /* LNOT */                      OP_TABLE_ENTRY (AML_LOGICAL_NOT_OP,         0,                              0,                  ACPI_BTYPE_INTEGER),
 /* LNOTEQUAL */                 OP_TABLE_ENTRY (AML_LOGICAL_NOT_EQUAL_OP,   0,                              0,                  ACPI_BTYPE_INTEGER),
-/* LOAD */                      OP_TABLE_ENTRY (AML_LOAD_OP,                0,                              0,                  0),
-/* LOADTABLE */                 OP_TABLE_ENTRY (AML_LOAD_TABLE_OP,          0,                              0,                  ACPI_BTYPE_DDB_HANDLE),
+/* LOAD */                      OP_TABLE_ENTRY (AML_LOAD_OP,                0,                              0,                  ACPI_BTYPE_INTEGER),
+/* LOADTABLE */                 OP_TABLE_ENTRY (AML_LOAD_TABLE_OP,          0,                              0,                  ACPI_BTYPE_INTEGER),
 /* LOCAL0 */                    OP_TABLE_ENTRY (AML_LOCAL0,                 0,                              0,                  ACPI_BTYPE_OBJECTS_AND_REFS),
 /* LOCAL1 */                    OP_TABLE_ENTRY (AML_LOCAL1,                 0,                              0,                  ACPI_BTYPE_OBJECTS_AND_REFS),
 /* LOCAL2 */                    OP_TABLE_ENTRY (AML_LOCAL2,                 0,                              0,                  ACPI_BTYPE_OBJECTS_AND_REFS),
@@ -462,6 +462,12 @@ const ASL_MAPPING_ENTRY     AslKeywordMapping [] =
 /* PIN_PULLDEFAULT */           OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
 /* PIN_PULLDOWN */              OP_TABLE_ENTRY (AML_BYTE_OP,                2,                              0,                  0),
 /* PIN_PULLUP */                OP_TABLE_ENTRY (AML_BYTE_OP,                1,                              0,                  0),
+/* CLOCKINPUT */                OP_TABLE_ENTRY (AML_DEFAULT_ARG_OP,         0,                              0,                  0),
+/* CLOCK_HZ */                  OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* CLOCK_KHZ */                 OP_TABLE_ENTRY (AML_BYTE_OP,                1,                              0,                  0),
+/* CLOCK_MHZ */                 OP_TABLE_ENTRY (AML_BYTE_OP,                2,                              0,                  0),
+/* CLOCK_FIXED */               OP_TABLE_ENTRY (AML_BYTE_OP,                0,                              0,                  0),
+/* CLOCK_VARIABLE */            OP_TABLE_ENTRY (AML_BYTE_OP,                1,                              0,                  0),
 /* POWERRESOURCE */             OP_TABLE_ENTRY (AML_POWER_RESOURCE_OP,      0,                              OP_AML_PACKAGE,     0),
 /* PROCESSOR */                 OP_TABLE_ENTRY (AML_PROCESSOR_OP,           0,                              OP_AML_PACKAGE,     0),
 /* QWORDCONST */                OP_TABLE_ENTRY (AML_RAW_DATA_QWORD,         0,                              0,                  ACPI_BTYPE_INTEGER),

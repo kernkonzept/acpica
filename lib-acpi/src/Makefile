@@ -149,6 +149,7 @@ ACPICA_SRC_C		= \
 	utilities/utascii.c \
 	utilities/utbuffer.c \
 	utilities/utcache.c \
+	utilities/utcksum.c \
 	utilities/utclib.c \
 	utilities/utcopy.c \
 	utilities/utdebug.c \
@@ -156,7 +157,7 @@ ACPICA_SRC_C		= \
 	utilities/utdelete.c \
 	utilities/uterror.c \
 	utilities/uteval.c \
-        utilities/utexcep.c \
+	utilities/utexcep.c \
 	utilities/utglobal.c \
 	utilities/uthex.c \
 	utilities/utids.c \

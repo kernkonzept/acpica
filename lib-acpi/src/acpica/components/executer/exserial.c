@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2023, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -484,6 +484,12 @@ AcpiExWriteSerialBus (
         Function = ACPI_WRITE;
         break;
 
+    case ACPI_ADR_SPACE_FIXED_HARDWARE:
+
+        BufferLength = ACPI_FFH_INPUT_BUFFER_SIZE;
+        Function = ACPI_WRITE;
+        break;
+
     default:
         return_ACPI_STATUS (AE_AML_INVALID_SPACE_ID);
     }
@@ -499,8 +505,7 @@ AcpiExWriteSerialBus (
     /* Copy the input buffer data to the transfer buffer */
 
     Buffer = BufferDesc->Buffer.Pointer;
-    DataLength = (BufferLength < SourceDesc->Buffer.Length ?
-        BufferLength : SourceDesc->Buffer.Length);
+    DataLength = ACPI_MIN (BufferLength, SourceDesc->Buffer.Length);
     memcpy (Buffer, SourceDesc->Buffer.Pointer, DataLength);
 
     /* Lock entire transaction if requested */

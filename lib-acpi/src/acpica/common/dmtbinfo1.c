@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2023, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -435,6 +435,57 @@ ACPI_DMTABLE_INFO           AcpiDmTableInfoAsf4[] =
 
 /*******************************************************************************
  *
+ * ASPT - AMD Secure Processor table (Signature "ASPT")
+ *
+ ******************************************************************************/
+
+ACPI_DMTABLE_INFO           AcpiDmTableInfoAspt[] =
+{
+    {ACPI_DMT_UINT32,   ACPI_ASPT_OFFSET(NumEntries),               "Number of Subtables", 0},
+    ACPI_DMT_TERMINATOR
+};
+
+/* Common Subtable header (one per Subtable) */
+ACPI_DMTABLE_INFO           AcpiDmTableInfoAsptHdr[] =
+{
+    {ACPI_DMT_ASPT,     ACPI_ASPTH_OFFSET(Type),                    "Type", 0},
+    {ACPI_DMT_UINT16,   ACPI_ASPTH_OFFSET(Length),                  "Length", 0},
+    ACPI_DMT_TERMINATOR
+};
+
+/* 0: ASPT Global Registers */
+ACPI_DMTABLE_INFO AcpiDmTableInfoAspt0[] =
+{
+    {ACPI_DMT_UINT32,   ACPI_ASPT0_OFFSET(Reserved),                "Reserved", 0},
+    {ACPI_DMT_UINT64,   ACPI_ASPT0_OFFSET(FeatureRegAddr),          "Feature Register Address", 0},
+    {ACPI_DMT_UINT64,   ACPI_ASPT0_OFFSET(IrqEnRegAddr),            "Interrupt Enable Register Address", 0},
+    {ACPI_DMT_UINT64,   ACPI_ASPT0_OFFSET(IrqStRegAddr),            "Interrupt Status Register Address", 0},
+    ACPI_DMT_TERMINATOR
+};
+
+/* 1: ASPT SEV Mailbox Registers */
+ACPI_DMTABLE_INFO AcpiDmTableInfoAspt1[] =
+{
+    {ACPI_DMT_UINT8,    ACPI_ASPT1_OFFSET(MboxIrqId),               "Mailbox Interrupt ID", 0},
+    {ACPI_DMT_UINT24,   ACPI_ASPT1_OFFSET(Reserved[0]),             "Reserved", 0},
+    {ACPI_DMT_UINT64,   ACPI_ASPT1_OFFSET(CmdRespRegAddr),          "CmdResp Register Address", 0},
+    {ACPI_DMT_UINT64,   ACPI_ASPT1_OFFSET(CmdBufLoRegAddr),         "CmdBufAddr_Lo Register Address", 0},
+    {ACPI_DMT_UINT64,   ACPI_ASPT1_OFFSET(CmdBufHiRegAddr),         "CmdBufAddr_Hi Register Address", 0},
+    ACPI_DMT_TERMINATOR
+};
+
+/* 2: ASPT ACPI Maiblox Registers */
+ACPI_DMTABLE_INFO AcpiDmTableInfoAspt2[] =
+{
+    {ACPI_DMT_UINT32,   ACPI_ASPT2_OFFSET(Reserved1),               "Reserved", 0},
+    {ACPI_DMT_UINT64,   ACPI_ASPT2_OFFSET(CmdRespRegAddr),          "CmdResp Register Address", 0},
+    {ACPI_DMT_UINT64,   ACPI_ASPT2_OFFSET(Reserved2[0]),           "Reserved", 0},
+    {ACPI_DMT_UINT64,   ACPI_ASPT2_OFFSET(Reserved2[1]),           "Reserved", 0},
+    ACPI_DMT_TERMINATOR
+};
+
+/*******************************************************************************
+ *
  * BDAT -  BIOS Data ACPI Table
  *
  ******************************************************************************/
@@ -494,6 +545,116 @@ ACPI_DMTABLE_INFO           AcpiDmTableInfoBoot[] =
     ACPI_DMT_TERMINATOR
 };
 
+/*******************************************************************************
+ *
+ * CDAT - Coherent Device Attribute Table
+ *
+ ******************************************************************************/
+
+ /* Table header (not ACPI-compliant) */
+
+ACPI_DMTABLE_INFO           AcpiDmTableInfoCdatTableHdr[] =
+{
+    {ACPI_DMT_UINT32,   ACPI_CDAT_OFFSET (Length),              "CDAT Table Length", DT_LENGTH},
+    {ACPI_DMT_UINT8,    ACPI_CDAT_OFFSET (Revision),            "Revision", 0},
+    {ACPI_DMT_UINT8,    ACPI_CDAT_OFFSET (Checksum),            "Checksum", 0},
+    {ACPI_DMT_UINT48,   ACPI_CDAT_OFFSET (Reserved),            "Reserved", 0},
+    {ACPI_DMT_UINT32,   ACPI_CDAT_OFFSET (Sequence),            "Sequence", 0},
+    ACPI_DMT_TERMINATOR
+};
+
+/* Common subtable header */
+
+ACPI_DMTABLE_INFO           AcpiDmTableInfoCdatHeader[] =
+{
+    {ACPI_DMT_CDAT,     ACPI_CDATH_OFFSET (Type),               "Subtable Type", 0},
+    {ACPI_DMT_UINT8,    ACPI_CDATH_OFFSET (Reserved),           "Reserved", 0},
+    {ACPI_DMT_UINT16,   ACPI_CDATH_OFFSET (Length),             "Length", DT_LENGTH},
+    ACPI_DMT_TERMINATOR
+};
+
+/* Subtable 0: Device Scoped Memory Affinity Structure (DSMAS) */
+
+ACPI_DMTABLE_INFO           AcpiDmTableInfoCdat0[] =
+{
+    {ACPI_DMT_UINT8,    ACPI_CDAT0_OFFSET (DsmadHandle),        "DSMAD Handle", 0},
+    {ACPI_DMT_UINT8,    ACPI_CDAT0_OFFSET (Flags),              "Flags", 0},
+    {ACPI_DMT_UINT16,   ACPI_CDAT0_OFFSET (Reserved),           "Reserved", 0},
+    {ACPI_DMT_UINT64,   ACPI_CDAT0_OFFSET (DpaBaseAddress),     "DPA Base Address", 0},
+    {ACPI_DMT_UINT64,   ACPI_CDAT0_OFFSET (DpaLength),          "DPA Length", 0},
+    ACPI_DMT_TERMINATOR
+};
+
+/* Subtable 1: Device scoped Latency and Bandwidth Information Structure (DSLBIS) */
+
+ACPI_DMTABLE_INFO           AcpiDmTableInfoCdat1[] =
+{
+    {ACPI_DMT_UINT8,    ACPI_CDAT1_OFFSET (Handle),             "Handle", 0},
+    {ACPI_DMT_UINT8,    ACPI_CDAT1_OFFSET (Flags),              "Flags", 0},
+    {ACPI_DMT_UINT8,    ACPI_CDAT1_OFFSET (DataType),           "Data Type", 0},
+    {ACPI_DMT_UINT8,    ACPI_CDAT1_OFFSET (Reserved),           "Reserved", 0},
+    {ACPI_DMT_UINT64,   ACPI_CDAT1_OFFSET (EntryBaseUnit),      "Entry Base Unit", 0},
+    {ACPI_DMT_UINT16,   ACPI_CDAT1_OFFSET (Entry[0]),           "Entry0", 0},
+    {ACPI_DMT_UINT16,   ACPI_CDAT1_OFFSET (Entry[1]),           "Entry1", 0},
+    {ACPI_DMT_UINT16,   ACPI_CDAT1_OFFSET (Entry[2]),           "Entry2", 0},
+    {ACPI_DMT_UINT16,   ACPI_CDAT1_OFFSET (Reserved2),          "Reserved", 0},
+    ACPI_DMT_TERMINATOR
+};
+
+/* Subtable 2: Device Scoped Memory Side Cache Information Structure (DSMSCIS) */
+
+ACPI_DMTABLE_INFO           AcpiDmTableInfoCdat2[] =
+{
+    {ACPI_DMT_UINT8,    ACPI_CDAT2_OFFSET (DsmasHandle),        "DSMAS Handle", 0},
+    {ACPI_DMT_UINT24,   ACPI_CDAT2_OFFSET (Reserved[3]),        "Reserved", 0},
+    {ACPI_DMT_UINT64,   ACPI_CDAT2_OFFSET (SideCacheSize),      "Side Cache Size", 0},
+    {ACPI_DMT_UINT32,   ACPI_CDAT2_OFFSET (CacheAttributes),    "Cache Attributes", 0},
+    ACPI_DMT_TERMINATOR
+};
+
+/* Subtable 3: Device Scoped Initiator Structure (DSIS) */
+
+ACPI_DMTABLE_INFO           AcpiDmTableInfoCdat3[] =
+{
+    {ACPI_DMT_UINT8,    ACPI_CDAT3_OFFSET (Flags),              "Flags", 0},
+    {ACPI_DMT_UINT8,    ACPI_CDAT3_OFFSET (Handle),             "Handle", 0},
+    {ACPI_DMT_UINT16,   ACPI_CDAT3_OFFSET (Reserved),           "Reserved", 0},
+    ACPI_DMT_TERMINATOR
+};
+
+/* Subtable 4: Device Scoped EFI Memory Type Structure (DSEMTS) */
+
+ACPI_DMTABLE_INFO           AcpiDmTableInfoCdat4[] =
+{
+    {ACPI_DMT_UINT8,    ACPI_CDAT4_OFFSET (DsmasHandle),        "DSMAS Handle", 0},
+    {ACPI_DMT_UINT8,    ACPI_CDAT4_OFFSET (MemoryType),         "Memory Type", 0},
+    {ACPI_DMT_UINT16,   ACPI_CDAT4_OFFSET (Reserved),           "Reserved", 0},
+    {ACPI_DMT_UINT64,   ACPI_CDAT4_OFFSET (DpaOffset),          "DPA Offset", 0},
+    {ACPI_DMT_UINT64,   ACPI_CDAT4_OFFSET (RangeLength),        "DPA Range Length", 0},
+    ACPI_DMT_TERMINATOR
+};
+
+/* Subtable 5: Switch Scoped Latency and Bandwidth Information Structure (SSLBIS) */
+
+ACPI_DMTABLE_INFO           AcpiDmTableInfoCdat5[] =
+{
+    {ACPI_DMT_UINT8,    ACPI_CDAT5_OFFSET (DataType),           "Data Type", 0},
+    {ACPI_DMT_UINT24,   ACPI_CDAT5_OFFSET (Reserved),           "Reserved", 0},
+    {ACPI_DMT_UINT64,   ACPI_CDAT5_OFFSET (EntryBaseUnit),      "Entry Base Unit", 0},
+    ACPI_DMT_TERMINATOR
+};
+
+/* Switch Scoped Latency and Bandwidth Entry (SSLBE) (For subtable 5 above) */
+
+ACPI_DMTABLE_INFO           AcpiDmTableInfoCdatEntries[] =
+{
+    {ACPI_DMT_UINT16,   ACPI_CDATE_OFFSET (PortxId),            "Port X Id", 0},
+    {ACPI_DMT_UINT16,   ACPI_CDATE_OFFSET (PortyId),            "Port Y Id", 0},
+    {ACPI_DMT_UINT16,   ACPI_CDATE_OFFSET (LatencyOrBandwidth), "Latency or Bandwidth", 0},
+    {ACPI_DMT_UINT16,   ACPI_CDATE_OFFSET (Reserved),           "Reserved", 0},
+    ACPI_DMT_TERMINATOR
+};
+
 
 /*******************************************************************************
  *
@@ -521,6 +682,28 @@ ACPI_DMTABLE_INFO           AcpiDmTableInfoCedt0[] =
     ACPI_DMT_TERMINATOR
 };
 
+/* 1: CXL Fixed Memory Window Structure */
+
+ACPI_DMTABLE_INFO           AcpiDmTableInfoCedt1[] =
+{
+    {ACPI_DMT_UINT32,   ACPI_CEDT1_OFFSET (Reserved1),            "Reserved", 0},
+    {ACPI_DMT_UINT64,   ACPI_CEDT1_OFFSET (BaseHpa),              "Window base address", 0},
+    {ACPI_DMT_UINT64,   ACPI_CEDT1_OFFSET (WindowSize),           "Window size", 0},
+    {ACPI_DMT_UINT8,    ACPI_CEDT1_OFFSET (InterleaveWays),       "Interleave Members (2^n)", 0},
+    {ACPI_DMT_UINT8,    ACPI_CEDT1_OFFSET (InterleaveArithmetic), "Interleave Arithmetic", 0},
+    {ACPI_DMT_UINT16,   ACPI_CEDT1_OFFSET (Reserved2),            "Reserved", 0},
+    {ACPI_DMT_UINT32,   ACPI_CEDT1_OFFSET (Granularity),          "Granularity", 0},
+    {ACPI_DMT_UINT16,   ACPI_CEDT1_OFFSET (Restrictions),         "Restrictions", 0},
+    {ACPI_DMT_UINT16,   ACPI_CEDT1_OFFSET (QtgId),                "QtgId", 0},
+    {ACPI_DMT_UINT32,   ACPI_CEDT1_OFFSET (InterleaveTargets),    "First Target", 0},
+    ACPI_DMT_TERMINATOR
+};
+
+ACPI_DMTABLE_INFO           AcpiDmTableInfoCedt1_te[] =
+{
+    {ACPI_DMT_UINT32,   ACPI_CEDT1_TE_OFFSET (InterleaveTarget),  "Next Target", 0},
+    ACPI_DMT_TERMINATOR
+};
 
 /*******************************************************************************
  *
@@ -768,6 +951,15 @@ ACPI_DMTABLE_INFO           AcpiDmTableInfoDmar4[] =
     ACPI_DMT_TERMINATOR
 };
 
+/* 5: Hardware Unit Definition */
+
+ACPI_DMTABLE_INFO           AcpiDmTableInfoDmar5[] =
+{
+    {ACPI_DMT_UINT8,    ACPI_DMAR5_OFFSET (Flags),                  "Flags", 0},
+    {ACPI_DMT_UINT8,    ACPI_DMAR5_OFFSET (Reserved),               "Reserved", 0},
+    {ACPI_DMT_UINT16,   ACPI_DMAR5_OFFSET (Segment),                "PCI Segment Number", 0},
+    ACPI_DMT_TERMINATOR
+};
 
 /*******************************************************************************
  *

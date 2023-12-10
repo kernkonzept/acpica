@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2023, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -252,6 +252,11 @@
 #define ACPI_SPINLOCK               spinlock_t *
 #define ACPI_CPU_FLAGS              unsigned long
 
+#define ACPI_UINTPTR_T              uintptr_t
+
+#define ACPI_TO_INTEGER(p)          ((uintptr_t)(p))
+#define ACPI_OFFSET(d, f)           offsetof(d, f)
+
 /* Use native linux version of AcpiOsAllocateZeroed */
 
 #define USE_NATIVE_ALLOCATE_ZEROED
@@ -305,7 +310,11 @@
 #define ACPI_USE_STANDARD_HEADERS
 
 #ifdef ACPI_USE_STANDARD_HEADERS
+#include <stddef.h>
 #include <unistd.h>
+#include <stdint.h>
+
+#define ACPI_OFFSET(d, f)   offsetof(d, f)
 #endif
 
 /* Define/disable kernel-specific declarators */
@@ -324,7 +333,7 @@
 
 #if defined(__ia64__)    || (defined(__x86_64__) && !defined(__ILP32__)) ||\
     defined(__aarch64__) || defined(__PPC64__) ||\
-    defined(__s390x__) ||\
+    defined(__s390x__)   || defined(__loongarch__) ||\
     (defined(__riscv) && (defined(__LP64__) || defined(_LP64)))
 #define ACPI_MACHINE_WIDTH          64
 #define COMPILER_DEPENDENT_INT64    long

@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2023, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -411,6 +411,7 @@ DtGetFieldType (
     case ACPI_DMT_FLAGS0:
     case ACPI_DMT_FLAGS1:
     case ACPI_DMT_FLAGS2:
+    case ACPI_DMT_FLAGS8_2:
     case ACPI_DMT_FLAGS4:
     case ACPI_DMT_FLAGS4_0:
     case ACPI_DMT_FLAGS4_4:
@@ -437,6 +438,7 @@ DtGetFieldType (
     case ACPI_DMT_BUF10:
     case ACPI_DMT_BUF12:
     case ACPI_DMT_BUF16:
+    case ACPI_DMT_BUF18:
     case ACPI_DMT_BUF128:
     case ACPI_DMT_PCI_PATH:
     case ACPI_DMT_PMTT_VENDOR:
@@ -560,6 +562,7 @@ DtGetFieldLength (
     case ACPI_DMT_FLAGS0:
     case ACPI_DMT_FLAGS1:
     case ACPI_DMT_FLAGS2:
+    case ACPI_DMT_FLAGS8_2:
     case ACPI_DMT_FLAGS4:
     case ACPI_DMT_FLAGS4_0:
     case ACPI_DMT_FLAGS4_4:
@@ -581,8 +584,7 @@ DtGetFieldLength (
     case ACPI_DMT_IVRS_DE:
     case ACPI_DMT_GTDT:
     case ACPI_DMT_MADT:
-    case ACPI_DMT_NHLT1:
-    case ACPI_DMT_NHLT1a:
+    case ACPI_DMT_MPAM_LOCATOR:
     case ACPI_DMT_PCCT:
     case ACPI_DMT_PMTT:
     case ACPI_DMT_PPTT:
@@ -594,6 +596,7 @@ DtGetFieldLength (
     case ACPI_DMT_AEST_XFACE:
     case ACPI_DMT_AEST_XRUPT:
     case ACPI_DMT_ASF:
+    case ACPI_DMT_CDAT:
     case ACPI_DMT_HESTNTYP:
     case ACPI_DMT_FADTPM:
     case ACPI_DMT_EINJACT:
@@ -606,6 +609,7 @@ DtGetFieldLength (
         ByteLength = 1;
         break;
 
+    case ACPI_DMT_ASPT:
     case ACPI_DMT_UINT16:
     case ACPI_DMT_DMAR:
     case ACPI_DMT_HEST:
@@ -737,6 +741,11 @@ DtGetFieldLength (
         ByteLength = 16;
         break;
 
+    case ACPI_DMT_BUF18:
+
+        ByteLength = 18;
+        break;
+
     case ACPI_DMT_BUF128:
 
         ByteLength = 128;
@@ -787,7 +796,7 @@ DtSum (
     UINT8                   *Sum = ReturnValue;
 
 
-    Checksum = AcpiTbChecksum (Subtable->Buffer, Subtable->Length);
+    Checksum = AcpiUtChecksum (Subtable->Buffer, Subtable->Length);
     *Sum = (UINT8) (*Sum + Checksum);
 }
 

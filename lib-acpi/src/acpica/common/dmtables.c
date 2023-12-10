@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2023, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -296,7 +296,7 @@ AdCreateTableHeader (
 
     AcpiOsPrintf ("\n *     Checksum         0x%2.2X",        Table->Checksum);
 
-    Checksum = AcpiTbChecksum (ACPI_CAST_PTR (UINT8, Table), Table->Length);
+    Checksum = AcpiUtChecksum (ACPI_CAST_PTR (UINT8, Table), Table->Length);
     if (Checksum)
     {
         AcpiOsPrintf (" **** Incorrect checksum, should be 0x%2.2X",

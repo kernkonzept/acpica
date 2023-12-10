@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2023, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -563,7 +563,7 @@ ApCheckForPredefinedName (
     if (Name[0] == 0)
     {
         AslError (ASL_ERROR, ASL_MSG_COMPILER_INTERNAL, Op,
-            "zero length name found");
+            "Zero length name found");
     }
 
     /* All reserved names are prefixed with a single underscore */

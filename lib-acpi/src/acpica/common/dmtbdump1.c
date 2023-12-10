@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2021, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2023, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -153,6 +153,7 @@
 #include "accommon.h"
 #include "acdisasm.h"
 #include "actables.h"
+#include "aslcompiler.h"
 
 /* This module used for application-level code only */
 
@@ -296,8 +297,6 @@ AcpiDmDumpAest (
             case ACPI_AEST_GENERIC_RESOURCE:
                 InfoTable = AcpiDmTableInfoAestGenRsrc;
                 Length = sizeof (ACPI_AEST_PROCESSOR_GENERIC);
-                AcpiOsPrintf ("Generic Resource Type (%X) is not supported at this time\n",
-                    ProcessorSubtable->ResourceType);
                 break;
 
             /* Error case below */
@@ -375,6 +374,68 @@ AcpiDmDumpAest (
                 AcpiOsPrintf ("\n");
             }
         }
+    }
+}
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiDmDumpApmt
+ *
+ * PARAMETERS:  Table               - A APMT table
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Format the contents of a APMT. This table type consists
+ *              of an open-ended number of subtables.
+ *
+ *
+ * APMT - ARM Performance Monitoring Unit table. Conforms to:
+ * ARM Performance Monitoring Unit Architecture 1.0 Platform Design Document
+ * ARM DEN0117 v1.0 November 25, 2021
+ *
+ ******************************************************************************/
+
+void
+AcpiDmDumpApmt (
+    ACPI_TABLE_HEADER       *Table)
+{
+    ACPI_STATUS              Status;
+    ACPI_APMT_NODE           *Subtable;
+    UINT32                   Length = Table->Length;
+    UINT32                   Offset = sizeof (ACPI_TABLE_APMT);
+    UINT32                   NodeNum = 0;
+
+    /* There is no main table (other than the standard ACPI header) */
+
+    /* Subtables */
+
+    Subtable = ACPI_ADD_PTR (ACPI_APMT_NODE, Table, Offset);
+    while (Offset < Table->Length)
+    {
+        AcpiOsPrintf ("\n");
+
+        if (Subtable->Type >= ACPI_APMT_NODE_TYPE_COUNT)
+        {
+            AcpiOsPrintf ("\n**** Unknown APMT subtable type 0x%X\n",
+                Subtable->Type);
+            return;
+        }
+
+        AcpiOsPrintf ("/* APMT Node-%u */\n", NodeNum++);
+
+        Status = AcpiDmDumpTable (Length, Offset, Subtable,
+            Subtable->Length, AcpiDmTableInfoApmtNode);
+        if (ACPI_FAILURE (Status))
+        {
+            return;
+        }
+
+        /* Point to next subtable */
+
+        Offset += Subtable->Length;
+        Subtable = ACPI_ADD_PTR (ACPI_APMT_NODE, Subtable,
+            Subtable->Length);
+        AcpiOsPrintf ("\n");
     }
 }
 
@@ -550,6 +611,281 @@ AcpiDmDumpAsf (
 
 /*******************************************************************************
  *
+ * FUNCTION:    AcpiDmDumpAspt
+ *
+ * PARAMETERS:  Table               - A ASPT table
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Format the contents of a ASPT table
+ *
+ ******************************************************************************/
+
+void
+AcpiDmDumpAspt (
+    ACPI_TABLE_HEADER       *Table)
+{
+    ACPI_STATUS             Status;
+    UINT32                  Offset = sizeof (ACPI_TABLE_ASPT);
+    UINT32                  Length = Table->Length;
+    ACPI_ASPT_HEADER        *Subtable;
+    ACPI_DMTABLE_INFO       *InfoTable;
+    UINT16                   Type;
+
+    /* Main table */
+    Status = AcpiDmDumpTable(Length, 0, Table, 0, AcpiDmTableInfoAspt);
+
+    /* Subtables */
+
+    Subtable = ACPI_ADD_PTR (ACPI_ASPT_HEADER, Table, Offset);
+    while (Offset < Table->Length)
+    {
+        AcpiOsPrintf ("\n");
+
+        /* Common subtable header */
+        Status = AcpiDmDumpTable (Table->Length, Offset, Subtable,
+            Subtable->Length, AcpiDmTableInfoAsptHdr);
+        if (ACPI_FAILURE (Status))
+        {
+            return;
+        }
+
+        Type = Subtable->Type;
+
+        switch (Type)
+        {
+        case ACPI_ASPT_TYPE_GLOBAL_REGS:
+
+            InfoTable = AcpiDmTableInfoAspt0;
+            break;
+
+        case ACPI_ASPT_TYPE_SEV_MBOX_REGS:
+
+            InfoTable = AcpiDmTableInfoAspt1;
+            break;
+
+        case ACPI_ASPT_TYPE_ACPI_MBOX_REGS:
+
+            InfoTable = AcpiDmTableInfoAspt2;
+            break;
+
+        default:
+
+            AcpiOsPrintf ("\n**** Unknown ASPT subtable type 0x%X\n",
+                Subtable->Type);
+            return;
+        }
+
+        Status = AcpiDmDumpTable (Table->Length, Offset, Subtable,
+            Subtable->Length, InfoTable);
+        if (ACPI_FAILURE (Status))
+        {
+            return;
+        }
+
+        AcpiOsPrintf ("\n");
+
+        /* Point to next subtable */
+        if (!Subtable->Length)
+        {
+            AcpiOsPrintf ("Invalid zero subtable header length\n");
+            return;
+        }
+
+        Offset += Subtable->Length;
+        Subtable = ACPI_ADD_PTR (ACPI_ASPT_HEADER, Subtable,
+            Subtable->Length);
+    }
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiDmDumpCdat
+ *
+ * PARAMETERS:  InTable             - A CDAT table
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Format the contents of a CDAT. This table type consists
+ *              of an open-ended number of subtables.
+ *
+ ******************************************************************************/
+
+void
+AcpiDmDumpCdat (
+    ACPI_TABLE_HEADER       *InTable)
+{
+    ACPI_TABLE_CDAT         *Table = ACPI_CAST_PTR (ACPI_TABLE_CDAT, InTable);
+    ACPI_STATUS             Status;
+    ACPI_CDAT_HEADER        *Subtable;
+    ACPI_TABLE_CDAT         *CdatTable = ACPI_CAST_PTR (ACPI_TABLE_CDAT, Table);
+    ACPI_DMTABLE_INFO       *InfoTable;
+    UINT32                  Length = CdatTable->Length;
+    UINT32                  Offset = sizeof (ACPI_TABLE_CDAT);
+    UINT32                  SubtableLength;
+    UINT32                  SubtableType;
+    INT32                   EntriesLength;
+
+
+    /* Main table */
+
+    Status = AcpiDmDumpTable (Offset, 0, CdatTable, 0,
+        AcpiDmTableInfoCdatTableHdr);
+    if (ACPI_FAILURE (Status))
+    {
+        return;
+    }
+
+    Subtable = ACPI_ADD_PTR (ACPI_CDAT_HEADER, Table, sizeof (ACPI_TABLE_CDAT));
+    while (Offset < Table->Length)
+    {
+        /* Dump the common subtable header */
+
+        DbgPrint (ASL_DEBUG_OUTPUT, "0) HeaderOffset: %X\n", Offset);
+        AcpiOsPrintf ("\n");
+        Status = AcpiDmDumpTable (Length, Offset, Subtable,
+            sizeof (ACPI_CDAT_HEADER), AcpiDmTableInfoCdatHeader);
+        if (ACPI_FAILURE (Status))
+        {
+            return;
+        }
+
+        /* Point past the common subtable header, decode the subtable type */
+
+        Offset += sizeof (ACPI_CDAT_HEADER);
+        SubtableType = Subtable->Type;
+
+        switch (Subtable->Type)
+        {
+        case ACPI_CDAT_TYPE_DSMAS:
+            Subtable = ACPI_ADD_PTR (ACPI_CDAT_HEADER, Table, Offset);
+            SubtableLength = sizeof (ACPI_CDAT_DSMAS);
+
+            InfoTable = AcpiDmTableInfoCdat0;
+            break;
+
+        case ACPI_CDAT_TYPE_DSLBIS:
+            Subtable = ACPI_ADD_PTR (ACPI_CDAT_HEADER, Table, Offset);
+            SubtableLength = sizeof (ACPI_CDAT_DSLBIS);
+            DbgPrint (ASL_DEBUG_OUTPUT, "1) Offset: %X\n", Offset);
+
+            InfoTable = AcpiDmTableInfoCdat1;
+            break;
+
+        case ACPI_CDAT_TYPE_DSMSCIS:
+            Subtable = ACPI_ADD_PTR (ACPI_CDAT_HEADER, Table, Offset);
+            SubtableLength = sizeof (ACPI_CDAT_DSMSCIS);
+
+            InfoTable = AcpiDmTableInfoCdat2;
+            break;
+
+        case ACPI_CDAT_TYPE_DSIS:
+            DbgPrint (ASL_DEBUG_OUTPUT, "2) Offset: %X ", Offset);
+            SubtableLength = sizeof (ACPI_CDAT_DSIS);
+            DbgPrint (ASL_DEBUG_OUTPUT, "1) input pointer: %p\n", Table);
+            Subtable = ACPI_ADD_PTR (ACPI_CDAT_HEADER, Table, Offset);
+            DbgPrint (ASL_DEBUG_OUTPUT, "1) output pointers: %p, %p, Offset: %X\n",
+                Table, Subtable, Offset);
+            DbgPrint (ASL_DEBUG_OUTPUT, "3) Offset: %X\n", Offset);
+
+            InfoTable = AcpiDmTableInfoCdat3;
+            break;
+
+        case ACPI_CDAT_TYPE_DSEMTS:
+            Subtable = ACPI_ADD_PTR (ACPI_CDAT_HEADER, Table, Offset);
+            SubtableLength = sizeof (ACPI_CDAT_DSEMTS);
+
+            InfoTable = AcpiDmTableInfoCdat4;
+            break;
+
+        case ACPI_CDAT_TYPE_SSLBIS:
+            SubtableLength = Subtable->Length;
+
+            InfoTable = AcpiDmTableInfoCdat5;
+            Subtable = ACPI_ADD_PTR (ACPI_CDAT_HEADER, Table, Offset);
+            break;
+
+        default:
+            fprintf (stderr, "ERROR: Unknown SubtableType: %X\n", Subtable->Type);
+            return;
+        }
+
+        DbgPrint (ASL_DEBUG_OUTPUT, "SubtableType: %X, Length: %X Actual "
+            "Length: %X Offset: %X tableptr: %p\n", SubtableType,
+            Subtable->Length, SubtableLength, Offset, Table);
+
+        /*
+         * Do the subtable-specific fields
+         */
+        Status = AcpiDmDumpTable (Length, Offset, Subtable, Offset, InfoTable);
+        if (ACPI_FAILURE (Status))
+        {
+            return;
+        }
+
+        DbgPrint (ASL_DEBUG_OUTPUT, "Subtable Type: %X, Offset: %X, SubtableLength: %X\n",
+            SubtableType, Offset, SubtableLength);
+
+        /* Additional sub-subtables, dependent on the main subtable type */
+
+        switch (SubtableType)
+        {
+        case ACPI_CDAT_TYPE_SSLBIS:
+            Offset += sizeof (ACPI_CDAT_SSLBIS);
+            Subtable = ACPI_ADD_PTR (ACPI_CDAT_HEADER, Table,
+                Offset);
+
+            DbgPrint (ASL_DEBUG_OUTPUT, "Case SSLBIS, Offset: %X, SubtableLength: %X "
+                "Subtable->Length %X\n", Offset, SubtableLength, Subtable->Length);
+
+            /* Generate the total length of all the SSLBE entries */
+
+            EntriesLength = SubtableLength - sizeof (ACPI_CDAT_HEADER) -
+                sizeof (ACPI_CDAT_SSLBIS);
+            DbgPrint (ASL_DEBUG_OUTPUT, "EntriesLength: %X, Offset: %X, Table->Length: %X\n",
+                EntriesLength, Offset, Table->Length);
+
+            /* Do each of the SSLBE Entries */
+
+            while ((EntriesLength > 0) && (Offset < Table->Length))
+            {
+                AcpiOsPrintf ("\n");
+
+                Status = AcpiDmDumpTable (Length, Offset, Subtable, Offset,
+                    AcpiDmTableInfoCdatEntries);
+                if (ACPI_FAILURE (Status))
+                {
+                    return;
+                }
+
+                EntriesLength -= sizeof (ACPI_CDAT_SSLBE);
+                Offset += sizeof (ACPI_CDAT_SSLBE);
+                Subtable = ACPI_ADD_PTR (ACPI_CDAT_HEADER, Table, Offset);
+            }
+
+            SubtableLength = 0;
+            break;
+
+        default:
+            break;
+        }
+
+        DbgPrint (ASL_DEBUG_OUTPUT, "Offset: %X, Subtable Length: %X\n",
+            Offset, SubtableLength);
+
+        /* Point to next subtable */
+
+        Offset += SubtableLength;
+        Subtable = ACPI_ADD_PTR (ACPI_CDAT_HEADER, Table, Offset);
+    }
+
+    return;
+}
+
+
+/*******************************************************************************
+ *
  * FUNCTION:    AcpiDmDumpCedt
  *
  * PARAMETERS:  Table               - A CEDT table
@@ -569,7 +905,6 @@ AcpiDmDumpCedt (
     ACPI_CEDT_HEADER        *Subtable;
     UINT32                  Length = Table->Length;
     UINT32                  Offset = sizeof (ACPI_TABLE_CEDT);
-    ACPI_DMTABLE_INFO       *InfoTable;
 
 
     /* There is no main table (other than the standard ACPI header) */
@@ -590,35 +925,58 @@ AcpiDmDumpCedt (
         switch (Subtable->Type)
         {
         case ACPI_CEDT_TYPE_CHBS:
-
-            InfoTable = AcpiDmTableInfoCedt0;
+            Status = AcpiDmDumpTable (Length, Offset, Subtable,
+                Subtable->Length, AcpiDmTableInfoCedt0);
+            if (ACPI_FAILURE (Status))
+            {
+                return;
+            }
             break;
 
-        default:
+        case ACPI_CEDT_TYPE_CFMWS:
+        {
+            ACPI_CEDT_CFMWS *ptr = (ACPI_CEDT_CFMWS *) Subtable;
+            unsigned int i, max = 0x01 << (ptr->InterleaveWays);
 
+            /* print out table with first "Interleave target" */
+
+            Status = AcpiDmDumpTable (Length, Offset, Subtable,
+                Subtable->Length, AcpiDmTableInfoCedt1);
+            if (ACPI_FAILURE (Status))
+            {
+                return;
+            }
+
+            /* Now, print out any interleave targets beyond the first. */
+
+            for (i = 1; i < max; i++)
+            {
+                unsigned int loc_offset = Offset + (i * 4) + ACPI_OFFSET (ACPI_CEDT_CFMWS, InterleaveTargets);
+                unsigned int *trg = &(ptr->InterleaveTargets[i]);
+
+                Status = AcpiDmDumpTable (Length, loc_offset, trg,
+                        Subtable->Length, AcpiDmTableInfoCedt1_te);
+                if (ACPI_FAILURE (Status))
+                {
+                    return;
+                }
+            }
+            break;
+        }
+
+        default:
             AcpiOsPrintf ("\n**** Unknown CEDT subtable type 0x%X\n\n",
                 Subtable->Type);
 
             /* Attempt to continue */
-
             if (!Subtable->Length)
             {
                 AcpiOsPrintf ("Invalid zero length subtable\n");
                 return;
             }
-            goto NextSubtable;
         }
 
-        Status = AcpiDmDumpTable (Length, Offset, Subtable,
-            Subtable->Length, InfoTable);
-        if (ACPI_FAILURE (Status))
-        {
-            return;
-        }
-
-NextSubtable:
         /* Point to next subtable */
-
         Offset += Subtable->Length;
         Subtable = ACPI_ADD_PTR (ACPI_CEDT_HEADER, Subtable,
             Subtable->Length);
@@ -988,6 +1346,12 @@ AcpiDmDumpDmar (
 
             InfoTable = AcpiDmTableInfoDmar4;
             ScopeOffset = sizeof (ACPI_DMAR_ANDD);
+            break;
+
+        case ACPI_DMAR_TYPE_SATC:
+
+            InfoTable = AcpiDmTableInfoDmar5;
+            ScopeOffset = sizeof (ACPI_DMAR_SATC);
             break;
 
         default:
@@ -1755,7 +2119,7 @@ AcpiDmDumpHmat (
             return;
         }
 
-        /* Dump HMAT structure additionals */
+        /* Dump HMAT structure additional */
 
         switch (HmatStruct->Type)
         {
