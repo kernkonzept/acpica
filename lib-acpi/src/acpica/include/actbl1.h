@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2023, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2024, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -822,20 +822,25 @@ typedef struct acpi_cedt_cfmws_target_element
 
 /* 2: CXL XOR Interleave Math Structure */
 
-struct acpi_cedt_cxims {
+typedef struct acpi_cedt_cxims {
     ACPI_CEDT_HEADER        Header;
     UINT16                  Reserved1;
     UINT8                   Hbig;
     UINT8                   NrXormaps;
     UINT64                  XormapList[];
-};
+} ACPI_CEDT_CXIMS;
+
+typedef struct acpi_cedt_cxims_target_element
+{
+    UINT64                   Xormap;
+
+} ACPI_CEDT_CXIMS_TARGET_ELEMENT;
+
 
 /* 3: CXL RCEC Downstream Port Association Structure */
 
 struct acpi_cedt_rdpas {
     ACPI_CEDT_HEADER        Header;
-    UINT8                   Reserved1;
-    UINT16                  Length;
     UINT16                  Segment;
     UINT16                  Bdf;
     UINT8                   Protocol;
@@ -1040,6 +1045,7 @@ typedef struct acpi_dbg2_device
 #define ACPI_DBG2_16550_WITH_GAS    0x0012
 #define ACPI_DBG2_SDM845_7_372MHZ   0x0013
 #define ACPI_DBG2_INTEL_LPSS        0x0014
+#define ACPI_DBG2_RISCV_SBI_CON     0x0015
 
 #define ACPI_DBG2_1394_STANDARD     0x0000
 

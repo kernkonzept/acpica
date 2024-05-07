@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2023, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2024, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -685,6 +685,7 @@ ACPI_TYPED_IDENTIFIER_TABLE           AcpiIdentifiers[] = {
     {"ACPI_TABLE_MSCT",                     SRC_TYPE_STRUCT},
     {"ACPI_TABLE_MSDM",                     SRC_TYPE_STRUCT},
     {"ACPI_TABLE_NFIT",                     SRC_TYPE_STRUCT},
+    {"ACPI_TABLE_NHLT",                     SRC_TYPE_STRUCT},
     {"ACPI_TABLE_PCCT",                     SRC_TYPE_STRUCT},
     {"ACPI_TABLE_PDTT",                     SRC_TYPE_STRUCT},
     {"ACPI_TABLE_PHAT",                     SRC_TYPE_STRUCT},
@@ -726,12 +727,14 @@ ACPI_TYPED_IDENTIFIER_TABLE           AcpiIdentifiers[] = {
     {"ACPI_AEST_MEMORY",                    SRC_TYPE_STRUCT},
     {"ACPI_AEST_NODE_INTERFACE",            SRC_TYPE_STRUCT},
     {"ACPI_AEST_NODE_INTERRUPT",            SRC_TYPE_STRUCT},
+    {"ACPI_AEST_NODE_INTERRUPT_V2",         SRC_TYPE_STRUCT},
     {"ACPI_AEST_PROCESSOR",                 SRC_TYPE_STRUCT},
     {"ACPI_AEST_PROCESSOR_CACHE",           SRC_TYPE_STRUCT},
     {"ACPI_AEST_PROCESSOR_GENERIC",         SRC_TYPE_STRUCT},
     {"ACPI_AEST_PROCESSOR_TLB",             SRC_TYPE_STRUCT},
     {"ACPI_AEST_SMMU",                      SRC_TYPE_STRUCT},
     {"ACPI_AEST_VENDOR",                    SRC_TYPE_STRUCT},
+    {"ACPI_AEST_VENDOR_V2",                 SRC_TYPE_STRUCT},
     {"ACPI_ASF_ADDRESS",                    SRC_TYPE_STRUCT},
     {"ACPI_ASF_ALERT",                      SRC_TYPE_STRUCT},
     {"ACPI_ASF_ALERT_DATA",                 SRC_TYPE_STRUCT},
@@ -856,6 +859,18 @@ ACPI_TYPED_IDENTIFIER_TABLE           AcpiIdentifiers[] = {
     {"ACPI_NFIT_MEMORY_MAP",                SRC_TYPE_STRUCT},
     {"ACPI_NFIT_SMBIOS",                    SRC_TYPE_STRUCT},
     {"ACPI_NFIT_SYSTEM_ADDRESS",            SRC_TYPE_STRUCT},
+    {"ACPI_NHLT_ENDPOINT",                  SRC_TYPE_STRUCT},
+    {"ACPI_NHLT_CONFIG",                    SRC_TYPE_STRUCT},
+    {"ACPI_NHLT_GENDEVICE_CONFIG",          SRC_TYPE_STRUCT},
+    {"ACPI_NHLT_MICDEVICE_CONFIG",          SRC_TYPE_STRUCT},
+    {"ACPI_NHLT_VENDOR_MIC_CONFIG",         SRC_TYPE_STRUCT},
+    {"ACPI_NHLT_VENDOR_MICDEVICE_CONFIG",   SRC_TYPE_STRUCT},
+    {"ACPI_NHLT_DEVICE_CONFIG",             SRC_TYPE_UNION},
+    {"ACPI_NHLT_WAVE_FORMATEXT",            SRC_TYPE_STRUCT},
+    {"ACPI_NHLT_FORMAT_CONFIG",             SRC_TYPE_STRUCT},
+    {"ACPI_NHLT_FORMATS_CONFIG",            SRC_TYPE_STRUCT},
+    {"ACPI_NHLT_DEVICE_INFO",               SRC_TYPE_STRUCT},
+    {"ACPI_NHLT_DEVICES_INFO",              SRC_TYPE_STRUCT},
     {"ACPI_PCCT_EXT_PCC_SHARED_MEMORY",     SRC_TYPE_STRUCT},
     {"ACPI_PCCT_HW_REDUCED",                SRC_TYPE_STRUCT},
     {"ACPI_PCCT_HW_REDUCED_TYPE2",          SRC_TYPE_STRUCT},
@@ -898,6 +913,7 @@ ACPI_TYPED_IDENTIFIER_TABLE           AcpiIdentifiers[] = {
     {"ACPI_SRAT_GENERIC_AFFINITY",          SRC_TYPE_STRUCT},
     {"ACPI_SRAT_MEM_AFFINITY",              SRC_TYPE_STRUCT},
     {"ACPI_SRAT_X2APIC_CPU_AFFINITY",       SRC_TYPE_STRUCT},
+    {"ACPI_SRAT_RINTC_AFFINITY",            SRC_TYPE_STRUCT},
     {"ACPI_TABLE_TCPA_CLIENT",              SRC_TYPE_STRUCT},
     {"ACPI_TABLE_TCPA_SERVER",              SRC_TYPE_STRUCT},
     {"ACPI_TPM2_TRAILER",                   SRC_TYPE_STRUCT},
@@ -1228,7 +1244,7 @@ ACPI_CONVERSION_TABLE       LicenseConversionTable =
 
 ACPI_STRING_TABLE           CustomReplacements[] =
 {
-    {"(c) 1999 - 2021",     "(c) 1999 - 2023",         REPLACE_WHOLE_WORD}, /* Main ACPICA source */
+    {"(c) 1999 - 2021",     "(c) 1999 - 2024",         REPLACE_WHOLE_WORD}, /* Main ACPICA source */
     {"(c) 2006 - 2021",     "(c) 2006 - 2023",         REPLACE_WHOLE_WORD}, /* Test suites */
 
 #if 0

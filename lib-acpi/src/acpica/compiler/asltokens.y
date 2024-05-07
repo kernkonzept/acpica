@@ -9,7 +9,7 @@ NoEcho('
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2023, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2024, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -256,6 +256,7 @@ NoEcho('
 %token <i> PARSEOP_DWORDCONST
 %token <i> PARSEOP_DWORDIO
 %token <i> PARSEOP_DWORDMEMORY
+%token <i> PARSEOP_DWORDPCC
 %token <i> PARSEOP_DWORDSPACE
 %token <i> PARSEOP_EISAID
 %token <i> PARSEOP_ELSE

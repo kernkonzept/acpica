@@ -8,7 +8,7 @@
  *
  * 1. Copyright Notice
  *
- * Some or all of this work - Copyright (c) 1999 - 2023, Intel Corp.
+ * Some or all of this work - Copyright (c) 1999 - 2024, Intel Corp.
  * All rights reserved.
  *
  * 2. License
@@ -254,8 +254,10 @@ DtCompileMadt (
     DT_SUBTABLE             *ParentTable;
     DT_FIELD                **PFieldList = (DT_FIELD **) List;
     DT_FIELD                *SubtableStart;
+    ACPI_TABLE_HEADER       *Table;
     ACPI_SUBTABLE_HEADER    *MadtHeader;
     ACPI_DMTABLE_INFO       *InfoTable;
+    UINT8                   Revision;
 
 
     Status = DtCompileTable (PFieldList, AcpiDmTableInfoMadt,
@@ -267,6 +269,9 @@ DtCompileMadt (
 
     ParentTable = DtPeekSubtable ();
     DtInsertSubtable (ParentTable, Subtable);
+
+    Table = ACPI_CAST_PTR (ACPI_TABLE_HEADER, ParentTable->Buffer);
+    Revision = Table->Revision;
 
     while (*PFieldList)
     {
@@ -343,7 +348,12 @@ DtCompileMadt (
 
         case ACPI_MADT_TYPE_GENERIC_INTERRUPT:
 
-            InfoTable = AcpiDmTableInfoMadt11;
+            if (Revision > 6)
+                    InfoTable = AcpiDmTableInfoMadt11b;
+            else if (Revision == 6)
+                    InfoTable = AcpiDmTableInfoMadt11a;
+            else
+                    InfoTable = AcpiDmTableInfoMadt11;
             break;
 
         case ACPI_MADT_TYPE_GENERIC_DISTRIBUTOR:
@@ -358,12 +368,15 @@ DtCompileMadt (
 
         case ACPI_MADT_TYPE_GENERIC_REDISTRIBUTOR:
 
-            InfoTable = AcpiDmTableInfoMadt14;
+            InfoTable = Revision > 6 ? AcpiDmTableInfoMadt14a
+                                     : AcpiDmTableInfoMadt14;
             break;
 
         case ACPI_MADT_TYPE_GENERIC_TRANSLATOR:
 
-            InfoTable = AcpiDmTableInfoMadt15;
+            InfoTable = Revision > 6 ? AcpiDmTableInfoMadt15a
+                                     : AcpiDmTableInfoMadt15;
+
             break;
 
         case ACPI_MADT_TYPE_MULTIPROC_WAKEUP:
@@ -537,7 +550,7 @@ DtCompileMpam (
         RisLength = 0;
 
         /* Iterate over RIS subtables per MSC node */
-        for (UINT32 ris = 0; ris < MpamMscNode->NumResouceNodes; ris++)
+        for (UINT32 ris = 0; ris < MpamMscNode->NumResourceNodes; ris++)
         {
             /* Compile RIS subtable */
             Status = DtCompileTable (PFieldList, AcpiDmTableInfoMpam1,
@@ -2597,6 +2610,11 @@ DtCompileSrat (
         case ACPI_SRAT_TYPE_GENERIC_PORT_AFFINITY:
 
             InfoTable = AcpiDmTableInfoSrat6;
+            break;
+
+        case ACPI_SRAT_TYPE_RINTC_AFFINITY:
+
+            InfoTable = AcpiDmTableInfoSrat7;
             break;
 
         default:
