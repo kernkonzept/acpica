@@ -242,6 +242,7 @@ AcpiRsDumpDescriptor (
  *
  ******************************************************************************/
 
+#ifdef ACPI_DEBUGGER
 void
 AcpiRsDumpResourceList (
     ACPI_RESOURCE           *ResourceList)
@@ -314,6 +315,7 @@ AcpiRsDumpResourceList (
 
     } while (Type != ACPI_RESOURCE_TYPE_END_TAG);
 }
+#endif
 
 
 /*******************************************************************************
@@ -328,6 +330,7 @@ AcpiRsDumpResourceList (
  *
  ******************************************************************************/
 
+#ifdef ACPI_DEBUGGER
 void
 AcpiRsDumpIrqList (
     UINT8                   *RouteTable)
@@ -359,6 +362,7 @@ AcpiRsDumpIrqList (
             PrtElement, PrtElement->Length);
     }
 }
+#endif
 
 
 /*******************************************************************************
