@@ -144,33 +144,17 @@ AcpiOsTableOverride (
 ACPI_PHYSICAL_ADDRESS
 AcpiOsGetRootPointer (void)
 {
-  ACPI_PHYSICAL_ADDRESS table_address = 0;
-  printf("Find root Pointer\n");
+  printf("Looking for ACPI root Pointer\n");
 
   using namespace L4::Kip;
 
-  for (auto const &md: Mem_desc::all(l4re_kip()))
-    {
-      if ((md.type() == Mem_desc::Info)
-          && (md.sub_type() == Mem_desc::Info_acpi_rsdp))
-        {
-          UINT8 *rsdp = (UINT8 *)AcpiOsMapMemory(md.start(), md.size());
-          if (!rsdp)
-            break;
-          UINT8 *found_rsdp = AcpiTbScanMemoryForRsdp(rsdp, md.size());
-          AcpiOsUnmapMemory((void *)rsdp, md.size());
-          if (found_rsdp)
-            {
-              table_address = md.start() + (found_rsdp - rsdp);
-              printf("Found root Pointer: %llx\n", table_address);
-              return table_address;
-            }
-          break;
-        }
-    }
+  if (l4re_kip()->acpi_rsdp_addr)
+    return l4re_kip()->acpi_rsdp_addr;
 
+  ACPI_PHYSICAL_ADDRESS table_address = 0;
   AcpiFindRootPointer(&table_address);
-  printf("Found root Pointer: %llx\n", table_address);
+  printf("Found ACPI root Pointer by searching (non-EFI method): %llx\n",
+         table_address);
   return table_address;
 }
 
