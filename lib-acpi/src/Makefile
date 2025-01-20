@@ -193,6 +193,7 @@ DEFINES += -DL4_ACPICA
 include $(L4DIR)/mk/lib.mk
 
 WARNINGS += -Wno-unused-parameter -Wno-null-pointer-subtraction
+WARNINGS += $(GCCWNOUNTERMINATEDSTRINGINITIALIZATION)
 
 main.o: dsdt-static.hex
 vpath dsdt-static.dsl $(PKGDIR)/server/lib-acpi/src/
