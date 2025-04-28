@@ -152,9 +152,11 @@ AcpiOsGetRootPointer (void)
     return l4re_kip()->acpi_rsdp_addr;
 
   ACPI_PHYSICAL_ADDRESS table_address = 0;
+#if defined(ARCH_x86) || defined(ARCH_amd64)
   AcpiFindRootPointer(&table_address);
   printf("Found ACPI root Pointer by searching (non-EFI method): %llx\n",
          table_address);
+#endif
   return table_address;
 }
 
