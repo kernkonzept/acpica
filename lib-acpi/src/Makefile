@@ -188,7 +188,8 @@ SRC_C := $(addprefix acpica/components/,$(ACPICA_SRC_C))
 SRC_C += osl-stdio.c debug.c
 SRC_CC+= osl-basic.cc
 
-DEFINES += -DL4_ACPICA
+PC_CFLAGS += -DL4_ACPICA
+DEFINES   += -DL4_ACPICA
 
 include $(L4DIR)/mk/lib.mk
 
