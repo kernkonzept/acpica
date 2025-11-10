@@ -144,20 +144,29 @@ AcpiOsTableOverride (
 ACPI_PHYSICAL_ADDRESS
 AcpiOsGetRootPointer (void)
 {
-  printf("Looking for ACPI root Pointer\n");
-
   using namespace L4::Kip;
 
   if (l4re_kip()->acpi_rsdp_addr)
-    return l4re_kip()->acpi_rsdp_addr;
+    {
+      printf("Using ACPI RSDP address provided by KIP\n");
+      return l4re_kip()->acpi_rsdp_addr;
+    }
 
-  ACPI_PHYSICAL_ADDRESS table_address = 0;
 #if defined(ARCH_x86) || defined(ARCH_amd64)
-  AcpiFindRootPointer(&table_address);
-  printf("Found ACPI root Pointer by searching (non-EFI method): %llx\n",
-         table_address);
+  ACPI_PHYSICAL_ADDRESS table_address = 0;
+  if (AcpiFindRootPointer(&table_address) == AE_OK)
+    {
+      printf("Found ACPI RSDP by searching (non-EFI method): %llx\n",
+             table_address);
+      return table_address;
+    }
+  else
+    printf("No ACPI RSDP found!\n");
+#else
+  printf("KIP doesn't provide ACPI RSDP address\n");
 #endif
-  return table_address;
+
+  return 0;
 }
 
 /******************************************************************************
